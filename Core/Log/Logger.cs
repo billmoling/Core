@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading;
 using System.IO;
 using System.Drawing;
+using System.Windows.Forms;
 
 namespace BillList.Core.Log
 {
@@ -58,9 +58,31 @@ namespace BillList.Core.Log
             }
         }
         /// <summary>
-        /// If IsWriteLogFile is true, Logger will save the logs to a file.
+        /// If IsWriteLogFile is true, first Logger will save all the logs to the log files. Then automate start a Thread to write the log files every ConstCacheTimeInterval (60000) millionseconds.
         /// </summary>
-        public Boolean IsWriteLogFile { get; set; }
+        public Boolean IsWriteLogFile
+        {
+            get
+            {
+                return IsWriteLogFile;
+            }
+            set
+            {
+                IsWriteLogFile = value;
+
+                //  if IsWriteLogFile is true, first Logger will save all the logs to the log files.
+                //  Then automate start a Thread to write the log files every ConstCacheTimeInterval millionseconds.
+                if (IsWriteLogFile)
+                {
+                    WriteAllLogs();
+
+                    //  Create a TimerCallback, it will run WriteLogs WriteLogs
+                    timerDelegate = new System.Threading.TimerCallback(WriteCacheLogs);
+                    //  Create the Timmer Class
+                    timer = new System.Threading.Timer(timerDelegate, null, ConstCacheTimeInterval, ConstCacheTimeInterval);
+                }
+            }
+        }
 
         /// <summary>
         /// If IsRTFFile is true, Log file will be saved to a rtf file with a color Log.
@@ -149,7 +171,7 @@ namespace BillList.Core.Log
         /// <summary>
         /// The color setting of Error Log's Message when Logger use RTF file to save the logs.
         /// </summary>
-        public Font LogErrorMessageColor
+        public Color LogErrorMessageColor
         {
             get
             {
@@ -198,7 +220,7 @@ namespace BillList.Core.Log
         /// <summary>
         /// The Font setting of Log's Message when Logger use RTF file to save the logs.
         /// </summary>
-        public Color LogMessageFont
+        public Font LogMessageFont
         {
             get
             {
@@ -218,6 +240,7 @@ namespace BillList.Core.Log
         private List<Log> _Logs;
         private List<Log> _ErrorLogs;
         private List<Log> _LogsCache;
+        private Log _ErrorLogsCache;
 
         //  Title's Members
         private List<String> _Title;
@@ -227,8 +250,8 @@ namespace BillList.Core.Log
         private Object lockthis = new Object();
 
         //  Timer Threading
-        private TimerCallback timerDelegate;
-        private Timer timer;
+        private System.Threading.TimerCallback timerDelegate;
+        private System.Threading.Timer timer;
         #endregion
 
         /// <summary>
@@ -241,6 +264,7 @@ namespace BillList.Core.Log
             _Logs = new List<Log>();
             _ErrorLogs = new List<Log>();
             _LogsCache = new List<Log>();
+            _ErrorLogsCache = null;
 
             _Title = new List<String>();
             _TitleString = String.Empty;
@@ -250,15 +274,6 @@ namespace BillList.Core.Log
             IsWriteLogFile = isWriteLogFile;
             IsRTFFile = isRTFFile;
             LogFilePath = logFilePath;
-
-            if (IsWriteLogFile)
-            {
-                //  Start a Thread to write the log files every ConstCacheTimeInterval ms.
-                //  Create a TimerCallback, it will run WriteLogs WriteLogs
-                timerDelegate = new TimerCallback(WriteLogs);
-                //  Create the Timmer Class
-                timer = new Timer(timerDelegate, null, ConstCacheTimeInterval, ConstCacheTimeInterval);
-            }
         }
 
         #region Methods
@@ -280,6 +295,7 @@ namespace BillList.Core.Log
                 else
                 {
                     _ErrorLogs.Add(log);
+                    _ErrorLogsCache = new Log(log);
                     _NeedWriteToFile = true;
                 }
             }
@@ -287,7 +303,7 @@ namespace BillList.Core.Log
             //  Need write the Log to log files ASAP
             if ((_NeedWriteToFile) && (IsWriteLogFile))
             {
-                WriteLogs(null);
+                WriteCacheLogs(null);
             }
         }
         /// <summary>
@@ -295,7 +311,7 @@ namespace BillList.Core.Log
         /// </summary>
         /// <param name="message">Log message</param>
         /// <param name="indent">indent of the message</param>
-        public void AddError(String message, String title, UInt32 indent = 0)
+        public void AddError(String message, String title = "", UInt16 indent = 0)
         {
             Log tempLog = Log.CreateErrorLog(_TitleString + message, title, indent);
             AddLog(tempLog);
@@ -305,7 +321,7 @@ namespace BillList.Core.Log
         /// </summary>
         /// <param name="message">Log message</param>
         /// <param name="indent">indent of the message</param>
-        public void AddWarning(String message, String title, UInt32 indent = 0)
+        public void AddWarning(String message, String title = "", UInt16 indent = 0)
         {
             Log tempLog = Log.CreateWarningLog(_TitleString + message, title, indent);
             AddLog(tempLog);
@@ -315,7 +331,7 @@ namespace BillList.Core.Log
         /// </summary>
         /// <param name="message">Log message</param>
         /// <param name="indent">indent of the message</param>
-        public void AddNormal(String message, String title, UInt32 indent = 0)
+        public void AddNormal(String message, String title = "", UInt16 indent = 0)
         {
             Log tempLog = Log.CreateNormalLog(_TitleString + message, title, indent);
             AddLog(tempLog);
@@ -326,7 +342,7 @@ namespace BillList.Core.Log
         /// <param name="message">Log message</param>
         /// <param name="title">Log title</param>
         /// <param name="indent">indent of the message</param>
-        public void AddDebug(String message, String title, UInt32 indent = 0)
+        public void AddDebug(String message, String title = "", UInt16 indent = 0)
         {
             //  Don't save the Info type message
             if (!IsDebugEnabled)
@@ -393,23 +409,229 @@ namespace BillList.Core.Log
         #endregion
         #region Write to File
         /// <summary>
-        /// Write the logs to the log files.
+        /// Write the Cache logs and the Error Cache log to the log files.
         /// </summary>
         /// <param name="state">Use for TimerCallback Class, will not use in the method</param>
-        private void WriteLogs(Object state)
+        private void WriteCacheLogs(Object state)
         {
-            //  private String LogFileName = DateTime.Now.ToString("yyyy-MM-dd") + "_Log";
-            //  private String ErrorLogFileName = DateTime.Now.ToString("yyyy-MM-dd") + "_ErrorLog";
-            //  private const String ConstLogTimeFormatString = "HH:mm:ss.ffff";
+            //  Check if need write the logs to files.
+            if (!IsWriteLogFile)
+                return;
 
             //  Create a new StreamWriter class to write files
-            StreamWriter writer = new StreamWriter(LogFileName, true);
+            StreamWriter writer;
 
             lock (lockthis)
             {
+                #region Trace Log
+                //  When the log cache have items
+                if (_LogsCache.Count != 0)
+                {
+                    writer = new StreamWriter(LogFileName + ".rtf", false);
+
+                    //  Check if the output file is the RTF file.
+                    if (IsRTFFile)
+                    {
+                        RichTextBox output = new RichTextBox();
+                        output.Text = String.Empty;
+
+                        foreach (Log _log in _LogsCache)
+                            output.Rtf += FormatLogRTF(_log);
+
+                        output.SaveFile(writer.BaseStream, RichTextBoxStreamType.RichText);
+                    }
+                    else
+                    {
+                        foreach (Log _log in _LogsCache)
+                            writer.WriteLine(FormatLogString(_log));
+                    }
+                    writer.Close();
+                }
+                #endregion
+                #region Error Log
+                //  When the error log cache have items
+                if (_ErrorLogsCache != null)
+                {
+                    writer = new StreamWriter(ErrorLogFileName + ".rtf", true);
+                    if (IsRTFFile)
+                    {
+                        RichTextBox output = new RichTextBox();
+                        output.Text = String.Empty;
+
+                        output.Rtf += FormatLogRTF(_ErrorLogsCache);
+
+                        output.SaveFile(writer.BaseStream, RichTextBoxStreamType.RichText);
+                    }
+                    else
+                    {
+                        writer.WriteLine(FormatLogString(_ErrorLogsCache));
+                    }
+                    writer.Close();
+                }
+                #endregion
+            }
+
+            //  Clear cache logs
+            _LogsCache.Clear();
+            _ErrorLogsCache = null;
+        }
+        /// <summary>
+        /// Write all the logs and al the Error log to the log files. This will overwrite the log file.
+        /// </summary>
+        private void WriteAllLogs()
+        {
+            //  Check if need write the logs to files.
+            if (!IsWriteLogFile)
+                return;
+
+            //  Create a new StreamWriter class to write files
+            StreamWriter writer;
+
+            lock (lockthis)
+            {
+                #region Trace Log
+                //  When the log cache have items
+                if (_LogsCache.Count != 0)
+                {
+                    writer = new StreamWriter(LogFileName + ".rtf", false);
+
+                    //  Check if the output file is the RTF file.
+                    if (IsRTFFile)
+                    {
+                        RichTextBox output = new RichTextBox();
+                        output.Text = String.Empty;
+
+                        foreach (Log _log in _Logs)
+                            output.Rtf += FormatLogRTF(_log);
+
+                        output.SaveFile(writer.BaseStream, RichTextBoxStreamType.RichText);
+                    }
+                    else
+                    {
+                        foreach (Log _log in _Logs)
+                            writer.WriteLine(FormatLogString(_log));
+                    }
+                    writer.Close();
+                }
+                #endregion
+                #region Error Log
+                //  When the log cache have items
+                if (_ErrorLogs.Count != 0)
+                {
+                    writer = new StreamWriter(ErrorLogFileName + ".rtf", true);
+                    if (IsRTFFile)
+                    {
+                        RichTextBox output = new RichTextBox();
+                        output.Text = String.Empty;
+
+                        foreach (Log _log in _ErrorLogs)
+                            output.Rtf += FormatLogRTF(_log);
+
+                        output.SaveFile(writer.BaseStream, RichTextBoxStreamType.RichText);
+                    }
+                    else
+                    {
+                        foreach (Log _log in _ErrorLogs)
+                            writer.WriteLine(FormatLogString(_log));
+                    }
+                    writer.Close();
+                }
+                #endregion
             }
         }
+        /// <summary>
+        /// Format the log information to the String.
+        /// </summary>
+        /// <param name="log">A log class</param>
+        /// <returns>If log is null, will return String.Empty; or return the String</returns>
+        private String FormatLogString(Log log)
+        {
+            if (log == null)
+                return String.Empty;
+
+            String _logString = String.Empty;
+            UInt16 indentCount = log.Indent;
+
+            //  Add the Indent of the log
+            for (int i = 0; i < indentCount; i++)
+                _logString += "\t";
+            //  Log's Time
+            _logString += "[" + log.Time.ToString(ConstLogTimeFormatString) + "] ";
+            //  Log's Type. If the type is Normal, will not show it.
+            _logString += log.Type == LogType.Normal ? String.Empty : log.Type.ToString() + ": ";
+            //  Log's Title
+            _logString += log.Title + " ";
+            //  Log's Message
+            _logString += log.Message;
+
+            return _logString;
+        }
+        /// <summary>
+        /// Format the log information to the RTF String.
+        /// </summary>
+        /// <param name="log">A log class</param>
+        /// <returns>If log is null, will return String.Empty; or return the RTF String</returns>
+        private String FormatLogRTF(Log log)
+        {
+            if (log == null)
+                return String.Empty;
+
+            RichTextBox rtfText = new RichTextBox();
+            rtfText.Text = String.Empty;
+
+            //  Set the Indent of the log
+            rtfText.SelectionIndent = (int)log.Indent;
+            //  Log's Time
+            rtfText.SelectionColor = ConstLogTimeColor;
+            rtfText.SelectionFont = ConstLogTimeFont;
+            rtfText.AppendText("[" + log.Time.ToString(ConstLogTimeFormatString) + "] ");
+            //  Log's Type. If the type is Normal, will not show it.
+            switch (log.Type)
+            {
+                case LogType.Normal:
+                    rtfText.SelectionColor = ConstLogNormalMessageColor;
+                    break;
+                case LogType.Debug:
+                    rtfText.SelectionColor = ConstLogDebugMessageColor;
+                    break;
+                case LogType.Error:
+                    rtfText.SelectionColor = ConstLogErrorMessageColor;
+                    break;
+                case LogType.Warning:
+                    rtfText.SelectionColor = ConstLogWarningMessageColor;
+                    break;
+            }
+            rtfText.SelectionFont = ConstLogMessageFont;
+            rtfText.AppendText(log.Type == LogType.Normal ? String.Empty : log.Type.ToString() + ": ");
+            //  Log's Title
+            rtfText.SelectionColor = ConstLogTitleColor;
+            rtfText.SelectionFont = ConstLogTitleFont;
+            rtfText.AppendText(log.Title + " ");
+            //  Log's Message
+            switch (log.Type)
+            {
+                case LogType.Normal:
+                    rtfText.SelectionColor = ConstLogNormalMessageColor;
+                    break;
+                case LogType.Debug:
+                    rtfText.SelectionColor = ConstLogDebugMessageColor;
+                    break;
+                case LogType.Error:
+                    rtfText.SelectionColor = ConstLogErrorMessageColor;
+                    break;
+                case LogType.Warning:
+                    rtfText.SelectionColor = ConstLogWarningMessageColor;
+                    break;
+            }
+            rtfText.SelectionFont = ConstLogMessageFont;
+            rtfText.AppendText(log.Message + "\r\n");
+
+            return rtfText.Rtf;
+        }
         #endregion
+        public void MergeLogger(Logger logger, String title = "", UInt16 indent = 0)
+        {
+        }
         #endregion
     }
 }
