@@ -1,0 +1,5 @@
+d:\Core\Core\obj\Debug\ResolveAssemblyReference.cache
+d:\Core\Core\bin\Debug\Core.dll
+d:\Core\Core\bin\Debug\Core.pdb
+d:\Core\Core\obj\Debug\Core.dll
+d:\Core\Core\obj\Debug\Core.pdb

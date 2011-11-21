@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.IO;
 using System.Drawing;
 using System.Windows.Forms;
@@ -22,16 +20,16 @@ namespace BillList.Core.Log
         //  Log String Setting
         private String ConstLogTimeFormatString = "HH:mm:ss.ffff";
 
-        private const Color ConstLogTimeColor = Color.FromArgb(217, 116, 43);
-        private const Color ConstLogTitleColor = Color.FromArgb(230, 180, 80);
-        private const Color ConstLogWarningMessageColor = Color.FromArgb(153, 77, 82);
-        private const Color ConstLogDebugMessageColor = Color.FromArgb(227, 230, 195);
-        private const Color ConstLogNormalMessageColor = Color.Black;
-        private const Color ConstLogErrorMessageColor = Color.Red;
+        private readonly Color ConstLogTimeColor = Color.FromArgb(217, 116, 43);
+        private readonly Color ConstLogTitleColor = Color.FromArgb(230, 180, 80);
+        private readonly Color ConstLogWarningMessageColor = Color.FromArgb(153, 77, 82);
+        private readonly Color ConstLogDebugMessageColor = Color.FromArgb(227, 230, 195);
+        private readonly Color ConstLogNormalMessageColor = Color.Black;
+        private readonly Color ConstLogErrorMessageColor = Color.Red;
 
-        private const Font ConstLogTimeFont = new Font("Calibri", 11, FontStyle.Italic);
-        private const Font ConstLogTitleFont = new Font("Calibri", 11, FontStyle.Bold);
-        private const Font ConstLogMessageFont = new Font("Calibri", 11, FontStyle.Regular);
+        private readonly Font ConstLogTimeFont = new Font("Calibri", 11, FontStyle.Italic);
+        private readonly Font ConstLogTitleFont = new Font("Calibri", 11, FontStyle.Bold);
+        private readonly Font ConstLogMessageFont = new Font("Calibri", 11, FontStyle.Regular);
         #endregion
         
         #region Properties
@@ -629,8 +627,42 @@ namespace BillList.Core.Log
             return rtfText.Rtf;
         }
         #endregion
-        public void MergeLogger(Logger logger, String title = "", UInt16 indent = 0)
+        /// <summary>
+        /// Add all the logs form a Logger class
+        /// </summary>
+        /// <param name="source">The source Logger class </param>
+        /// <param name="title">Add title to the logs in the source</param>
+        /// <param name="indent">Add indent to the logs in the source</param>
+        public void MergeLogger(Logger source, String title = "", UInt16 indent = 0)
         {
+            lock (lockthis)
+            {
+                int i = 0;
+                int j = 0;
+                while ((i < source._Logs.Count) && (j < _Logs.Count))
+                {
+                    //  if log's time is smaller
+                    if (source._Logs[i].Time.CompareTo(_Logs[j].Time) == -1)
+                    {
+                        //  Add title
+                        if (source._Logs[i].Title == String.Empty)
+                            source._Logs[i].Title = title;
+                        else
+                            source._Logs[i].Title = title + "::" + source._Logs[i].Title;
+
+                        //  Add indent
+                        source._Logs[i].Indent += indent;
+
+                        _Logs.Insert(j, source._Logs[i]);
+                        i++;
+                        j++;
+                    }
+                    else
+                        j++;
+                }
+                while (i < source._Logs.Count)
+                    _Logs.Add(source._Logs[i++]);
+            }
         }
         #endregion
     }

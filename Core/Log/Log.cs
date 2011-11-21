@@ -59,6 +59,9 @@ namespace BillList.Core.Log
         /// <param name="indent">indent of the message</param>
         public Log(String message, String title, LogType type = LogType.Normal, UInt16 indent = 0)
         {
+            if ((message == null) || (message == String.Empty))
+                throw (new ArgumentNullException("Message Property could not be empty."));
+
             Message = message;
             Title = title;
             Type = type;
@@ -87,6 +90,9 @@ namespace BillList.Core.Log
         /// <param name="indent">indent of the message</param>
         public static Log CreateErrorLog(String message, String title, UInt16 indent = 0)
         {
+            if ((message == null) || (message == String.Empty))
+                throw (new ArgumentNullException("Message Property could not be empty."));
+
             return new Log(message, title, LogType.Error, indent);
         }
         /// <summary>
@@ -97,6 +103,9 @@ namespace BillList.Core.Log
         /// <param name="indent">indent of the message</param>
         public static Log CreateWarningLog(String message, String title, UInt16 indent = 0)
         {
+            if ((message == null) || (message == String.Empty))
+                throw (new ArgumentNullException("Message Property could not be empty."));
+
             return new Log(message, title, LogType.Warning, indent);
         }
         /// <summary>
@@ -107,6 +116,9 @@ namespace BillList.Core.Log
         /// <param name="indent">indent of the message</param>
         public static Log CreateNormalLog(String message, String title, UInt16 indent = 0)
         {
+            if ((message == null) || (message == String.Empty))
+                throw (new ArgumentNullException("Message Property could not be empty."));
+
             return new Log(message, title, LogType.Normal, indent);
         }
         /// <summary>
@@ -117,6 +129,9 @@ namespace BillList.Core.Log
         /// <param name="indent">indent of the message</param>
         public static Log CreateDebugLog(String message, String title, UInt16 indent = 0)
         {
+            if ((message == null) || (message == String.Empty))
+                throw (new ArgumentNullException("Message Property could not be empty."));
+
             return new Log(message, title, LogType.Debug, indent);
         }
         #endregion

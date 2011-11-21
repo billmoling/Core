@@ -1,0 +1,9 @@
+d:\Core\CoreTest\bin\Debug\CoreTest.dll
+d:\Core\CoreTest\bin\Debug\CoreTest.pdb
+d:\Core\CoreTest\bin\Debug\Core.dll
+d:\Core\CoreTest\bin\Debug\Core.pdb
+d:\Core\CoreTest\bin\Debug\Core_Accessor.dll
+d:\Core\CoreTest\bin\Debug\Core_Accessor.pdb
+d:\Core\CoreTest\obj\Debug\ResolveAssemblyReference.cache
+d:\Core\CoreTest\obj\Debug\CoreTest.dll
+d:\Core\CoreTest\obj\Debug\CoreTest.pdb
