@@ -4,7 +4,7 @@ using System.IO;
 using System.Drawing;
 using System.Windows.Forms;
 
-namespace BillList.Core.Log
+namespace BigEgg.Core.Log
 {
     public class Logger
     {

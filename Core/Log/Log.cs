@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace BillList.Core.Log
+namespace BigEgg.Core.Log
 {
     public enum LogType
     {
@@ -15,39 +15,69 @@ namespace BillList.Core.Log
         #region Properties
         public DateTime Time
         {
-            get;
-            private set;
+            get
+            {
+                return _Time;
+            }
         }
         public String Message
         {
             get
             {
-                return Message;
+                return _Message;
             }
             set
             {
-                if ((value == null) || (value == String.Empty))
-                    throw (new NullReferenceException("Message Property could not be empty."));
+                if ((value == null) || (value.Trim() == String.Empty))
+                    throw new ArgumentException("Message property could not be NULL or empty.");
 
-                Message = value;
+                _Message = value;
             }
         }
         public String Title
         {
             get
             {
-                return Title;
+                return _Title;
             }
             set
             {
                 if (value == null)
-                    Title = String.Empty;
+                    _Title = String.Empty;
                 else
-                    Title = value;
+                    _Title = value.Trim();
             }
         }
-        public UInt16 Indent { get; set; }
-        public LogType Type { get; set; }
+        public UInt16 Indent
+        { 
+            get
+            { 
+                return _Indent;
+            }
+            set
+            {
+                _Indent = value;
+            }
+        }
+        public LogType Type
+        {
+            get
+            {
+                return _Type;
+            }
+            set
+            {
+                _Type = value;
+            }
+        }
+        #endregion
+
+        #region Members
+        private DateTime _Time;
+        private String _Message;
+        private String _Title;
+        private UInt16 _Indent;
+        private LogType _Type;
         #endregion
 
         /// <summary>
@@ -57,16 +87,16 @@ namespace BillList.Core.Log
         /// <param name="title">Log title</param>
         /// <param name="type">Log type: Error, Warning, Normal or Debug</param>
         /// <param name="indent">indent of the message</param>
-        public Log(String message, String title, LogType type = LogType.Normal, UInt16 indent = 0)
+        public Log(String message, String title = "", LogType type = LogType.Normal, UInt16 indent = 0)
         {
-            if ((message == null) || (message == String.Empty))
-                throw (new ArgumentNullException("Message Property could not be empty."));
+            if ((message == null) || (message.Trim() == String.Empty))
+                throw new ArgumentNullException("message", "The message parameter could not be NULL or empty.");
 
-            Message = message;
-            Title = title;
-            Type = type;
-            Indent = indent;
-            Time = DateTime.Now;
+            _Message = message;
+            _Title = title;
+            _Type = type;
+            _Indent = indent;
+            _Time = DateTime.Now;
         }
         /// <summary>
         /// Constructor of Log class
@@ -74,11 +104,11 @@ namespace BillList.Core.Log
         /// <param name="log">A Log class which need to be copied.</param>
         public Log(Log log)
         {
-            Message = log.Message;
-            Title = log.Title;
+            _Message = log.Message;
+            _Title = log.Title;
             Type = log.Type;
             Indent = log.Indent;
-            Time = log.Time;
+            _Time = log.Time;
         }
 
         #region Methods
@@ -88,10 +118,10 @@ namespace BillList.Core.Log
         /// <param name="message">Log message</param>
         /// <param name="title">Log title</param>
         /// <param name="indent">indent of the message</param>
-        public static Log CreateErrorLog(String message, String title, UInt16 indent = 0)
+        public static Log CreateErrorLog(String message, String title = "", UInt16 indent = 0)
         {
-            if ((message == null) || (message == String.Empty))
-                throw (new ArgumentNullException("Message Property could not be empty."));
+            if ((message == null) || (message.Trim() == String.Empty))
+                throw new ArgumentNullException("message", "The message parameter could not be NULL or empty.");
 
             return new Log(message, title, LogType.Error, indent);
         }
@@ -101,10 +131,10 @@ namespace BillList.Core.Log
         /// <param name="message">Log message</param>
         /// <param name="title">Log title</param>
         /// <param name="indent">indent of the message</param>
-        public static Log CreateWarningLog(String message, String title, UInt16 indent = 0)
+        public static Log CreateWarningLog(String message, String title = "", UInt16 indent = 0)
         {
-            if ((message == null) || (message == String.Empty))
-                throw (new ArgumentNullException("Message Property could not be empty."));
+            if ((message == null) || (message.Trim() == String.Empty))
+                throw new ArgumentNullException("message", "The message parameter could not be NULL or empty.");
 
             return new Log(message, title, LogType.Warning, indent);
         }
@@ -114,10 +144,10 @@ namespace BillList.Core.Log
         /// <param name="message">Log message</param>
         /// <param name="title">Log title</param>
         /// <param name="indent">indent of the message</param>
-        public static Log CreateNormalLog(String message, String title, UInt16 indent = 0)
+        public static Log CreateNormalLog(String message, String title = "", UInt16 indent = 0)
         {
-            if ((message == null) || (message == String.Empty))
-                throw (new ArgumentNullException("Message Property could not be empty."));
+            if ((message == null) || (message.Trim() == String.Empty))
+                throw new ArgumentNullException("message", "The message parameter could not be NULL or empty.");
 
             return new Log(message, title, LogType.Normal, indent);
         }
@@ -127,10 +157,10 @@ namespace BillList.Core.Log
         /// <param name="message">Log message</param>
         /// <param name="title">Log title</param>
         /// <param name="indent">indent of the message</param>
-        public static Log CreateDebugLog(String message, String title, UInt16 indent = 0)
+        public static Log CreateDebugLog(String message, String title = "", UInt16 indent = 0)
         {
-            if ((message == null) || (message == String.Empty))
-                throw (new ArgumentNullException("Message Property could not be empty."));
+            if ((message == null) || (message.Trim() == String.Empty))
+                throw new ArgumentNullException("message", "The message parameter could not be NULL or empty.");
 
             return new Log(message, title, LogType.Debug, indent);
         }

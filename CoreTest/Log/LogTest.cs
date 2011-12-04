@@ -1,4 +1,4 @@
-﻿using BillList.Core.Log;
+﻿using BigEgg.Core.Log;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 
@@ -11,6 +11,22 @@ namespace CoreTest.LogTest
     [TestClass()]
     public class LogTest
     {
+        enum LogTestData
+        {
+            ID,
+            Message,
+            Title,
+            Type,
+            Indent,
+            IsValid
+        }
+        enum LogMessageTestData
+        {
+            ID,
+            Message,
+            IsValid
+        }
+
         private TestContext testContextInstance;
 
         /// <summary>
@@ -59,190 +75,762 @@ namespace CoreTest.LogTest
         //
         #endregion
 
-
+        #region Constructor Test
         /// <summary>
-        ///A test for Log Constructor
-        ///</summary>
-        [TestMethod()]
-        public void LogConstructorTest()
+        /// A test for Copy Constructor of Log class
+        /// </summary>
+        [DataSource("System.Data.OleDb", 
+            "Provider=Microsoft.ACE.OLEDB.12.0;Data Source=D:\\Core\\CoreTest\\TestData.accdb", 
+            "LogData", DataAccessMethod.Sequential), TestMethod()]
+        public void Log_CopyConstructor_Test()
         {
+            Boolean valid = (Boolean)TestContext.DataRow.ItemArray[(int)LogTestData.IsValid];
+            String message, title;
+            LogType logType;
+            Int32 indent;
 
+            if (valid)
+            {
+                Object temp = TestContext.DataRow.ItemArray[(int)LogTestData.Message];
+                if (temp is System.DBNull)
+                    message = null;
+                else
+                    message = (String)temp;
 
+                temp = TestContext.DataRow.ItemArray[(int)LogTestData.Title];
+                if (temp is System.DBNull)
+                    title = null;
+                else
+                    title = (String)temp;
 
-            Log log = new Log("Test Message", "Test title", LogType.Normal, 0); // Initialize to an appropriate value
-            Log target = new Log(log);
-            Assert.AreEqual(log, target);
+                switch ((Int32)TestContext.DataRow.ItemArray[(int)LogTestData.Type])
+                {
+                    case 1:
+                        logType = LogType.Warning;
+                        break;
+                    case 2:
+                        logType = LogType.Error;
+                        break;
+                    case 3:
+                        logType = LogType.Debug;
+                        break;
+                    default:
+                        logType = LogType.Normal;
+                        break;
+                }
+                indent = (Int32)(TestContext.DataRow.ItemArray[(int)LogTestData.Indent]);
 
-            log = new Log("", "Test title", LogType.Normal, 0); // Initialize to an appropriate value
-            target = new Log(log);
-            Assert.AreEqual(log, target);
+                Log log = new Log(message, title, logType, (UInt16)indent); // Initialize to an appropriate value
+                Log target = new Log(log);
+                Assert.AreEqual<DateTime>(log.Time, target.Time);
+                Assert.AreEqual<String>(log.Message, target.Message);
+                Assert.AreEqual<String>(log.Title, target.Title);
+                Assert.AreEqual<LogType>(log.Type, target.Type);
+                Assert.AreEqual<UInt16>(log.Indent, target.Indent);
+            }
+        }
+        /// <summary>
+        /// A test for the default parameters in Copy Constructor of Log class
+        /// </summary>
+        [DataSource("System.Data.OleDb", 
+            "Provider=Microsoft.ACE.OLEDB.12.0;Data Source=D:\\Core\\CoreTest\\TestData.accdb", 
+            "LogMessageData", DataAccessMethod.Sequential), TestMethod()]
+        public void Log_CopyConstructor_DefaultTest()
+        {
+            Boolean valid = (Boolean)TestContext.DataRow.ItemArray[(int)LogMessageTestData.IsValid];
+            String message;
 
-            log = new Log("Test Message", "", LogType.Normal, 0); // Initialize to an appropriate value
-            target = new Log(log);
-            Assert.AreEqual(log, target);
+            if (valid)
+            {
+                Object temp = TestContext.DataRow.ItemArray[(int)LogMessageTestData.Message];
+                if (temp is System.DBNull)
+                    message = null;
+                else
+                    message = (String)temp;
 
-            log = new Log("Test Message", "Test title", LogType.Normal, 2); // Initialize to an appropriate value
-            target = new Log(log);
-            Assert.AreEqual(log, target);
+                Log log = new Log(message); // Initialize to an appropriate value
+                Log target = new Log(log);
+                Assert.AreEqual<DateTime>(log.Time, target.Time);
+                Assert.AreEqual<String>(log.Message, target.Message);
+                Assert.AreEqual<String>(log.Title, target.Title);
+                Assert.AreEqual<LogType>(log.Type, target.Type);
+                Assert.AreEqual<UInt16>(log.Indent, target.Indent);
+            }
         }
 
         /// <summary>
-        ///A test for Log Constructor
-        ///</summary>
-        [TestMethod()]
-        public void LogConstructorTest1()
+        /// A test for Log Constructor
+        /// </summary>
+        [DataSource("System.Data.OleDb", 
+            "Provider=Microsoft.ACE.OLEDB.12.0;Data Source=D:\\Core\\CoreTest\\TestData.accdb", 
+            "LogData", DataAccessMethod.Sequential), TestMethod()]
+        public void Log_Constructor_Test()
         {
-            string message = string.Empty; // TODO: Initialize to an appropriate value
-            string title = string.Empty; // TODO: Initialize to an appropriate value
-            LogType type = new LogType(); // TODO: Initialize to an appropriate value
-            ushort indent = 0; // TODO: Initialize to an appropriate value
-            Log target = new Log(message, title, type, indent);
-            Assert.Inconclusive("TODO: Implement code to verify target");
+            Boolean valid = (Boolean)TestContext.DataRow.ItemArray[(int)LogTestData.IsValid];
+            String message, title;
+            LogType logType;
+            Int32 indent;
+
+            Object temp = TestContext.DataRow.ItemArray[(int)LogTestData.Message];
+            if (temp is System.DBNull)
+                message = null;
+            else
+                message = (String)temp;
+
+            temp = TestContext.DataRow.ItemArray[(int)LogTestData.Title];
+            if (temp is System.DBNull)
+                title = null;
+            else
+                title = (String)temp;
+
+            switch ((Int32)TestContext.DataRow.ItemArray[(int)LogTestData.Type])
+            {
+                case 1:
+                    logType = LogType.Warning;
+                    break;
+                case 2:
+                    logType = LogType.Error;
+                    break;
+                case 3:
+                    logType = LogType.Debug;
+                    break;
+                default:
+                    logType = LogType.Normal;
+                    break;
+            }
+            indent = (Int32)(TestContext.DataRow.ItemArray[(int)LogTestData.Indent]);
+
+            if (valid)
+            {
+                Log log = new Log(message, title, logType, (UInt16)indent);
+                Assert.AreEqual<String>(log.Message, message);
+                Assert.AreEqual<String>(log.Title, title);
+                Assert.AreEqual<LogType>(log.Type, logType);
+                Assert.AreEqual<UInt16>(log.Indent, (UInt16)indent);
+            }
+            else
+            {
+                Exception exception = null;
+                try
+                {
+                    Log log = new Log(message, title, logType, (UInt16)indent);
+                }
+                catch (Exception e)
+                {
+                    exception = e;
+                }
+                Assert.IsNotNull(exception, "The expected exception was not thrown.");
+                Assert.AreEqual<Type>(typeof(ArgumentNullException), exception.GetType(),
+                    "The exception type was unexpected.");
+            }
+        }
+        /// <summary>
+        /// A test for the default parameters in Log Constructor
+        /// </summary>
+        [DataSource("System.Data.OleDb", 
+            "Provider=Microsoft.ACE.OLEDB.12.0;Data Source=D:\\Core\\CoreTest\\TestData.accdb", 
+            "LogMessageData", DataAccessMethod.Sequential), TestMethod()]
+        public void Log_Constructor_DefaultTest()
+        {
+            Boolean valid = (Boolean)TestContext.DataRow.ItemArray[(int)LogMessageTestData.IsValid];
+            String message;
+
+            Object temp = TestContext.DataRow.ItemArray[(int)LogMessageTestData.Message];
+            if (temp is System.DBNull)
+                message = null;
+            else
+                message = (String)temp;
+
+            if (valid)
+            {
+                Log log = new Log(message);
+                Assert.AreEqual<String>(log.Message, message);
+                Assert.AreEqual<String>(log.Title, String.Empty);
+                Assert.AreEqual<LogType>(log.Type, LogType.Normal);
+                Assert.AreEqual<UInt16>(log.Indent, 0);
+            }
+            else
+            {
+                Exception exception = null;
+                try
+                {
+                    Log log = new Log(message);
+                }
+                catch (Exception e)
+                {
+                    exception = e;
+                }
+                Assert.IsNotNull(exception, "The expected exception was not thrown.");
+                Assert.AreEqual<Type>(typeof(ArgumentNullException), exception.GetType(),
+                    "The exception type was unexpected.");
+            }
+        }
+        #endregion
+
+        #region Method Test
+        /// <summary>
+        /// A test for CreateDebugLog Method
+        /// </summary>
+        [DataSource("System.Data.OleDb", 
+            "Provider=Microsoft.ACE.OLEDB.12.0;Data Source=D:\\Core\\CoreTest\\TestData.accdb", 
+            "LogData", DataAccessMethod.Sequential), TestMethod()]
+        public void Log_Method_CreateDebugLog_Test()
+        {
+            Boolean valid = (Boolean)TestContext.DataRow.ItemArray[(int)LogTestData.IsValid];
+            String message, title;
+            Int32 indent;
+
+            Object temp = TestContext.DataRow.ItemArray[(int)LogTestData.Message];
+            if (temp is System.DBNull)
+                message = null;
+            else
+                message = (String)temp;
+
+            temp = TestContext.DataRow.ItemArray[(int)LogTestData.Title];
+            if (temp is System.DBNull)
+                title = null;
+            else
+                title = (String)temp;
+
+            indent = (Int32)(TestContext.DataRow.ItemArray[(int)LogTestData.Indent]);
+
+            if (valid)
+            {
+                Log log = Log.CreateDebugLog(message, title, (UInt16)indent);
+                Assert.AreEqual<String>(log.Message, message);
+                Assert.AreEqual<String>(log.Title, title);
+                Assert.AreEqual<LogType>(log.Type, LogType.Debug);
+                Assert.AreEqual<UInt16>(log.Indent, (UInt16)indent);
+            }
+            else
+            {
+                Exception exception = null;
+                try
+                {
+                    Log log = Log.CreateDebugLog(message, title, (UInt16)indent);
+                }
+                catch (Exception e)
+                {
+                    exception = e;
+                }
+                Assert.IsNotNull(exception, "The expected exception was not thrown.");
+                Assert.AreEqual<Type>(typeof(ArgumentNullException), exception.GetType(),
+                    "The exception type was unexpected.");
+            }
+        }
+        /// <summary>
+        /// A test for the default parameters in CreateDebugLog Method
+        /// </summary>
+        [DataSource("System.Data.OleDb",
+            "Provider=Microsoft.ACE.OLEDB.12.0;Data Source=D:\\Core\\CoreTest\\TestData.accdb",
+            "LogMessageData", DataAccessMethod.Sequential), TestMethod()]
+        public void Log_Method_CreateDebugLog_DefaultTest()
+        {
+            Boolean valid = (Boolean)TestContext.DataRow.ItemArray[(int)LogMessageTestData.IsValid];
+            String message;
+
+            Object temp = TestContext.DataRow.ItemArray[(int)LogMessageTestData.Message];
+            if (temp is System.DBNull)
+                message = null;
+            else
+                message = (String)temp;
+
+            if (valid)
+            {
+                Log log = Log.CreateDebugLog(message);
+                Assert.AreEqual<String>(log.Message, message);
+                Assert.AreEqual<String>(log.Title, String.Empty);
+                Assert.AreEqual<LogType>(log.Type, LogType.Debug);
+                Assert.AreEqual<UInt16>(log.Indent, 0);
+            }
+            else
+            {
+                Exception exception = null;
+                try
+                {
+                    Log log = Log.CreateDebugLog(message);
+                }
+                catch (Exception e)
+                {
+                    exception = e;
+                }
+                Assert.IsNotNull(exception, "The expected exception was not thrown.");
+                Assert.AreEqual<Type>(typeof(ArgumentNullException), exception.GetType(),
+                    "The exception type was unexpected.");
+            }
         }
 
         /// <summary>
-        ///A test for CreateDebugLog
-        ///</summary>
-        [TestMethod()]
-        public void CreateDebugLogTest()
+        /// A test for CreateErrorLog Method
+        /// </summary>
+        [DataSource("System.Data.OleDb", 
+            "Provider=Microsoft.ACE.OLEDB.12.0;Data Source=D:\\Core\\CoreTest\\TestData.accdb", 
+            "LogData", DataAccessMethod.Sequential), TestMethod()]
+        public void Log_Method_CreateErrorLog_Test()
         {
-            string message = string.Empty; // TODO: Initialize to an appropriate value
-            string title = string.Empty; // TODO: Initialize to an appropriate value
-            ushort indent = 0; // TODO: Initialize to an appropriate value
-            Log expected = null; // TODO: Initialize to an appropriate value
-            Log actual;
-            actual = Log.CreateDebugLog(message, title, indent);
-            Assert.AreEqual(expected, actual);
-            Assert.Inconclusive("Verify the correctness of this test method.");
+            Boolean valid = (Boolean)TestContext.DataRow.ItemArray[(int)LogTestData.IsValid];
+            String message, title;
+            Int32 indent;
+
+            Object temp = TestContext.DataRow.ItemArray[(int)LogTestData.Message];
+            if (temp is System.DBNull)
+                message = null;
+            else
+                message = (String)temp;
+
+            temp = TestContext.DataRow.ItemArray[(int)LogTestData.Title];
+            if (temp is System.DBNull)
+                title = null;
+            else
+                title = (String)temp;
+
+            indent = (Int32)(TestContext.DataRow.ItemArray[(int)LogTestData.Indent]);
+
+            if (valid)
+            {
+                Log log = Log.CreateErrorLog(message, title, (UInt16)indent);
+                Assert.AreEqual<String>(log.Message, message);
+                Assert.AreEqual<String>(log.Title, title);
+                Assert.AreEqual<LogType>(log.Type, LogType.Error);
+                Assert.AreEqual<UInt16>(log.Indent, (UInt16)indent);
+            }
+            else
+            {
+                Exception exception = null;
+                try
+                {
+                    Log log = Log.CreateErrorLog(message, title, (UInt16)indent);
+                }
+                catch (Exception e)
+                {
+                    exception = e;
+                }
+                Assert.IsNotNull(exception, "The expected exception was not thrown.");
+                Assert.AreEqual<Type>(typeof(ArgumentNullException), exception.GetType(),
+                    "The exception type was unexpected.");
+            }
+        }
+        /// <summary>
+        /// A test for the default parameters in CreateErrorLog Method
+        /// </summary>
+        [DataSource("System.Data.OleDb", 
+            "Provider=Microsoft.ACE.OLEDB.12.0;Data Source=D:\\Core\\CoreTest\\TestData.accdb",
+            "LogMessageData", DataAccessMethod.Sequential), TestMethod()]
+        public void Log_Method_CreateErrorLog_DefaultTest()
+        {
+            Boolean valid = (Boolean)TestContext.DataRow.ItemArray[(int)LogMessageTestData.IsValid];
+            String message;
+
+            Object temp = TestContext.DataRow.ItemArray[(int)LogMessageTestData.Message];
+            if (temp is System.DBNull)
+                message = null;
+            else
+                message = (String)temp;
+
+            if (valid)
+            {
+                Log log = Log.CreateErrorLog(message);
+                Assert.AreEqual<String>(log.Message, message);
+                Assert.AreEqual<String>(log.Title, String.Empty);
+                Assert.AreEqual<LogType>(log.Type, LogType.Error);
+                Assert.AreEqual<UInt16>(log.Indent, 0);
+            }
+            else
+            {
+                Exception exception = null;
+                try
+                {
+                    Log log = Log.CreateErrorLog(message);
+                }
+                catch (Exception e)
+                {
+                    exception = e;
+                }
+                Assert.IsNotNull(exception, "The expected exception was not thrown.");
+                Assert.AreEqual<Type>(typeof(ArgumentNullException), exception.GetType(),
+                    "The exception type was unexpected.");
+            }
         }
 
         /// <summary>
-        ///A test for CreateErrorLog
-        ///</summary>
-        [TestMethod()]
-        public void CreateErrorLogTest()
+        /// A test for CreateNormalLog Method
+        /// </summary>
+        [DataSource("System.Data.OleDb", 
+            "Provider=Microsoft.ACE.OLEDB.12.0;Data Source=D:\\Core\\CoreTest\\TestData.accdb", 
+            "LogData", DataAccessMethod.Sequential), TestMethod()]
+        public void Log_Method_CreateNormalLog_Test()
         {
-            string message = string.Empty; // TODO: Initialize to an appropriate value
-            string title = string.Empty; // TODO: Initialize to an appropriate value
-            ushort indent = 0; // TODO: Initialize to an appropriate value
-            Log expected = null; // TODO: Initialize to an appropriate value
-            Log actual;
-            actual = Log.CreateErrorLog(message, title, indent);
-            Assert.AreEqual(expected, actual);
-            Assert.Inconclusive("Verify the correctness of this test method.");
+            Boolean valid = (Boolean)TestContext.DataRow.ItemArray[(int)LogTestData.IsValid];
+            String message, title;
+            Int32 indent;
+
+            Object temp = TestContext.DataRow.ItemArray[(int)LogTestData.Message];
+            if (temp is System.DBNull)
+                message = null;
+            else
+                message = (String)temp;
+
+            temp = TestContext.DataRow.ItemArray[(int)LogTestData.Title];
+            if (temp is System.DBNull)
+                title = null;
+            else
+                title = (String)temp;
+
+            indent = (Int32)(TestContext.DataRow.ItemArray[(int)LogTestData.Indent]);
+
+            if (valid)
+            {
+                Log log = Log.CreateNormalLog(message, title, (UInt16)indent);
+                Assert.AreEqual<String>(log.Message, message);
+                Assert.AreEqual<String>(log.Title, title);
+                Assert.AreEqual<LogType>(log.Type, LogType.Normal);
+                Assert.AreEqual<UInt16>(log.Indent, (UInt16)indent);
+            }
+            else
+            {
+                Exception exception = null;
+                try
+                {
+                    Log log = Log.CreateNormalLog(message, title, (UInt16)indent);
+                }
+                catch (Exception e)
+                {
+                    exception = e;
+                }
+                Assert.IsNotNull(exception, "The expected exception was not thrown.");
+                Assert.AreEqual<Type>(typeof(ArgumentNullException), exception.GetType(),
+                    "The exception type was unexpected.");
+            }
+        }
+        /// <summary>
+        /// A test for the default parameters in CreateNormalLog Method
+        /// </summary>
+        [DataSource("System.Data.OleDb",
+            "Provider=Microsoft.ACE.OLEDB.12.0;Data Source=D:\\Core\\CoreTest\\TestData.accdb",
+            "LogMessageData", DataAccessMethod.Sequential), TestMethod()]
+        public void Log_Method_CreateNormalLog_DefaultTest()
+        {
+            Boolean valid = (Boolean)TestContext.DataRow.ItemArray[(int)LogMessageTestData.IsValid];
+            String message;
+
+            Object temp = TestContext.DataRow.ItemArray[(int)LogMessageTestData.Message];
+            if (temp is System.DBNull)
+                message = null;
+            else
+                message = (String)temp;
+
+            if (valid)
+            {
+                Log log = Log.CreateNormalLog(message);
+                Assert.AreEqual<String>(log.Message, message);
+                Assert.AreEqual<String>(log.Title, String.Empty);
+                Assert.AreEqual<LogType>(log.Type, LogType.Normal);
+                Assert.AreEqual<UInt16>(log.Indent, 0);
+            }
+            else
+            {
+                Exception exception = null;
+                try
+                {
+                    Log log = Log.CreateNormalLog(message);
+                }
+                catch (Exception e)
+                {
+                    exception = e;
+                }
+                Assert.IsNotNull(exception, "The expected exception was not thrown.");
+                Assert.AreEqual<Type>(typeof(ArgumentNullException), exception.GetType(),
+                    "The exception type was unexpected.");
+            }
         }
 
         /// <summary>
-        ///A test for CreateNormalLog
-        ///</summary>
-        [TestMethod()]
-        public void CreateNormalLogTest()
+        /// A test for CreateWarningLog Method
+        /// </summary>
+        [DataSource("System.Data.OleDb", 
+            "Provider=Microsoft.ACE.OLEDB.12.0;Data Source=D:\\Core\\CoreTest\\TestData.accdb", 
+            "LogData", DataAccessMethod.Sequential), TestMethod()]
+        public void Log_Method_CreateWarningLog_Test()
         {
-            string message = string.Empty; // TODO: Initialize to an appropriate value
-            string title = string.Empty; // TODO: Initialize to an appropriate value
-            ushort indent = 0; // TODO: Initialize to an appropriate value
-            Log expected = null; // TODO: Initialize to an appropriate value
-            Log actual;
-            actual = Log.CreateNormalLog(message, title, indent);
-            Assert.AreEqual(expected, actual);
-            Assert.Inconclusive("Verify the correctness of this test method.");
+            Boolean valid = (Boolean)TestContext.DataRow.ItemArray[(int)LogTestData.IsValid];
+            String message, title;
+            Int32 indent;
+
+            Object temp = TestContext.DataRow.ItemArray[(int)LogTestData.Message];
+            if (temp is System.DBNull)
+                message = null;
+            else
+                message = (String)temp;
+
+            temp = TestContext.DataRow.ItemArray[(int)LogTestData.Title];
+            if (temp is System.DBNull)
+                title = null;
+            else
+                title = (String)temp;
+
+            indent = (Int32)(TestContext.DataRow.ItemArray[(int)LogTestData.Indent]);
+
+            if (valid)
+            {
+                Log log = Log.CreateWarningLog(message, title, (UInt16)indent);
+                Assert.AreEqual<String>(log.Message, message);
+                Assert.AreEqual<String>(log.Title, title);
+                Assert.AreEqual<LogType>(log.Type, LogType.Warning);
+                Assert.AreEqual<UInt16>(log.Indent, (UInt16)indent);
+            }
+            else
+            {
+                Exception exception = null;
+                try
+                {
+                    Log log = Log.CreateWarningLog(message, title, (UInt16)indent);
+                }
+                catch (Exception e)
+                {
+                    exception = e;
+                }
+                Assert.IsNotNull(exception, "The expected exception was not thrown.");
+                Assert.AreEqual<Type>(typeof(ArgumentNullException), exception.GetType(),
+                    "The exception type was unexpected.");
+            }
+        }
+        /// <summary>
+        /// A test for the default parameters in CreateWarningLog Method
+        /// </summary>
+        [DataSource("System.Data.OleDb", 
+            "Provider=Microsoft.ACE.OLEDB.12.0;Data Source=D:\\Core\\CoreTest\\TestData.accdb",
+            "LogMessageData", DataAccessMethod.Sequential), TestMethod()]
+        public void Log_Method_CreateWarningLog_DefaultTest()
+        {
+            Boolean valid = (Boolean)TestContext.DataRow.ItemArray[(int)LogMessageTestData.IsValid];
+            String message;
+
+            Object temp = TestContext.DataRow.ItemArray[(int)LogMessageTestData.Message];
+            if (temp is System.DBNull)
+                message = null;
+            else
+                message = (String)temp;
+
+            if (valid)
+            {
+                Log log = Log.CreateWarningLog(message);
+                Assert.AreEqual<String>(log.Message, message);
+                Assert.AreEqual<String>(log.Title, String.Empty);
+                Assert.AreEqual<LogType>(log.Type, LogType.Warning);
+                Assert.AreEqual<UInt16>(log.Indent, 0);
+            }
+            else
+            {
+                Exception exception = null;
+                try
+                {
+                    Log log = Log.CreateWarningLog(message);
+                }
+                catch (Exception e)
+                {
+                    exception = e;
+                }
+                Assert.IsNotNull(exception, "The expected exception was not thrown.");
+                Assert.AreEqual<Type>(typeof(ArgumentNullException), exception.GetType(),
+                    "The exception type was unexpected.");
+            }
+        }
+        #endregion
+
+        #region Property Test
+        /// <summary>
+        /// A test for Indent Property
+        /// </summary>
+        [DataSource("System.Data.OleDb",
+            "Provider=Microsoft.ACE.OLEDB.12.0;Data Source=D:\\Core\\CoreTest\\TestData.accdb",
+            "LogData", DataAccessMethod.Sequential), TestMethod()]
+        public void Log_Property_Indent_Test()
+        {
+            Boolean valid = (Boolean)TestContext.DataRow.ItemArray[(int)LogTestData.IsValid];
+            if (valid)
+            {
+                String message, title;
+                LogType logType;
+                Int32 indent;
+
+                Object temp = TestContext.DataRow.ItemArray[(int)LogTestData.Message];
+                if (temp is System.DBNull)
+                    message = null;
+                else
+                    message = (String)temp;
+
+                temp = TestContext.DataRow.ItemArray[(int)LogTestData.Title];
+                if (temp is System.DBNull)
+                    title = null;
+                else
+                    title = (String)temp;
+
+                switch ((Int32)TestContext.DataRow.ItemArray[(int)LogTestData.Type])
+                {
+                    case 1:
+                        logType = LogType.Warning;
+                        break;
+                    case 2:
+                        logType = LogType.Error;
+                        break;
+                    case 3:
+                        logType = LogType.Debug;
+                        break;
+                    default:
+                        logType = LogType.Normal;
+                        break;
+                }
+                indent = (Int32)(TestContext.DataRow.ItemArray[(int)LogTestData.Indent]);
+
+                Log log = new Log(message, title, logType, (UInt16)indent);
+
+                log.Indent = 5;
+                Assert.AreEqual<UInt16>(log.Indent, 5);
+            }
         }
 
         /// <summary>
-        ///A test for CreateWarningLog
-        ///</summary>
-        [TestMethod()]
-        public void CreateWarningLogTest()
+        /// A test for Message Property
+        /// </summary>
+        [DataSource("System.Data.OleDb",
+            "Provider=Microsoft.ACE.OLEDB.12.0;Data Source=D:\\Core\\CoreTest\\TestData.accdb",
+            "LogMessageData", DataAccessMethod.Sequential), TestMethod()]
+        public void Log_Property_Message_Test()
         {
-            string message = string.Empty; // TODO: Initialize to an appropriate value
-            string title = string.Empty; // TODO: Initialize to an appropriate value
-            ushort indent = 0; // TODO: Initialize to an appropriate value
-            Log expected = null; // TODO: Initialize to an appropriate value
-            Log actual;
-            actual = Log.CreateWarningLog(message, title, indent);
-            Assert.AreEqual(expected, actual);
-            Assert.Inconclusive("Verify the correctness of this test method.");
+            Boolean valid = (Boolean)TestContext.DataRow.ItemArray[(int)LogMessageTestData.IsValid];
+            String message;
+
+            Object temp = TestContext.DataRow.ItemArray[(int)LogMessageTestData.Message];
+            if (temp is System.DBNull)
+                message = null;
+            else
+                message = (String)temp;
+
+            Log log = new Log("Test message", "Test title", LogType.Normal, 0);
+
+            if (valid)
+            {
+                log.Message = message;
+                Assert.AreEqual<String>(log.Message, message);
+            }
+            else
+            {
+                Exception exception = null;
+                try
+                {
+                    log.Message = message;
+                }
+                catch (Exception e)
+                {
+                    exception = e;
+                }
+                Assert.IsNotNull(exception, "The expected exception was not thrown.");
+                Assert.AreEqual<Type>(typeof(ArgumentException), exception.GetType(),
+                    "The exception type was unexpected.");
+            }
         }
 
         /// <summary>
-        ///A test for Indent
-        ///</summary>
-        [TestMethod()]
-        public void IndentTest()
+        /// A test for Title Property
+        /// </summary>
+        [DataSource("System.Data.OleDb",
+            "Provider=Microsoft.ACE.OLEDB.12.0;Data Source=D:\\Core\\CoreTest\\TestData.accdb",
+            "LogData", DataAccessMethod.Sequential), TestMethod()]
+        public void Log_Property_Title_Test()
         {
-            Log log = null; // TODO: Initialize to an appropriate value
-            Log target = new Log(log); // TODO: Initialize to an appropriate value
-            ushort expected = 0; // TODO: Initialize to an appropriate value
-            ushort actual;
-            target.Indent = expected;
-            actual = target.Indent;
-            Assert.AreEqual(expected, actual);
-            Assert.Inconclusive("Verify the correctness of this test method.");
+            Boolean valid = (Boolean)TestContext.DataRow.ItemArray[(int)LogTestData.IsValid];
+            if (valid)
+            {
+                String message, title;
+                LogType logType;
+                Int32 indent;
+
+                Object temp = TestContext.DataRow.ItemArray[(int)LogTestData.Message];
+                if (temp is System.DBNull)
+                    message = null;
+                else
+                    message = (String)temp;
+
+                temp = TestContext.DataRow.ItemArray[(int)LogTestData.Title];
+                if (temp is System.DBNull)
+                    title = null;
+                else
+                    title = (String)temp;
+
+                switch ((Int32)TestContext.DataRow.ItemArray[(int)LogTestData.Type])
+                {
+                    case 1:
+                        logType = LogType.Warning;
+                        break;
+                    case 2:
+                        logType = LogType.Error;
+                        break;
+                    case 3:
+                        logType = LogType.Debug;
+                        break;
+                    default:
+                        logType = LogType.Normal;
+                        break;
+                }
+                indent = (Int32)(TestContext.DataRow.ItemArray[(int)LogTestData.Indent]);
+
+                Log log = new Log(message, title, logType, (UInt16)indent);
+
+                log.Title = "123";
+                Assert.AreEqual<String>(log.Title, "123");
+            }
         }
 
         /// <summary>
-        ///A test for Message
-        ///</summary>
-        [TestMethod()]
-        public void MessageTest()
+        /// A test for Type Property
+        /// </summary>
+        [DataSource("System.Data.OleDb",
+            "Provider=Microsoft.ACE.OLEDB.12.0;Data Source=D:\\Core\\CoreTest\\TestData.accdb",
+            "LogData", DataAccessMethod.Sequential), TestMethod()]
+        public void Log_Property_Type_Test()
         {
-            Log log = null; // TODO: Initialize to an appropriate value
-            Log target = new Log(log); // TODO: Initialize to an appropriate value
-            string expected = string.Empty; // TODO: Initialize to an appropriate value
-            string actual;
-            target.Message = expected;
-            actual = target.Message;
-            Assert.AreEqual(expected, actual);
-            Assert.Inconclusive("Verify the correctness of this test method.");
-        }
+            Boolean valid = (Boolean)TestContext.DataRow.ItemArray[(int)LogTestData.IsValid];
+            if (valid)
+            {
+                String message, title;
+                LogType logType;
+                Int32 indent;
 
-        /// <summary>
-        ///A test for Time
-        ///</summary>
-        [TestMethod()]
-        [DeploymentItem("Core.dll")]
-        public void TimeTest()
-        {
-            PrivateObject param0 = null; // TODO: Initialize to an appropriate value
-            Log_Accessor target = new Log_Accessor(param0); // TODO: Initialize to an appropriate value
-            DateTime expected = new DateTime(); // TODO: Initialize to an appropriate value
-            DateTime actual;
-            target.Time = expected;
-            actual = target.Time;
-            Assert.AreEqual(expected, actual);
-            Assert.Inconclusive("Verify the correctness of this test method.");
-        }
+                Object temp = TestContext.DataRow.ItemArray[(int)LogTestData.Message];
+                if (temp is System.DBNull)
+                    message = null;
+                else
+                    message = (String)temp;
 
-        /// <summary>
-        ///A test for Title
-        ///</summary>
-        [TestMethod()]
-        public void TitleTest()
-        {
-            Log log = null; // TODO: Initialize to an appropriate value
-            Log target = new Log(log); // TODO: Initialize to an appropriate value
-            string expected = string.Empty; // TODO: Initialize to an appropriate value
-            string actual;
-            target.Title = expected;
-            actual = target.Title;
-            Assert.AreEqual(expected, actual);
-            Assert.Inconclusive("Verify the correctness of this test method.");
-        }
+                temp = TestContext.DataRow.ItemArray[(int)LogTestData.Title];
+                if (temp is System.DBNull)
+                    title = null;
+                else
+                    title = (String)temp;
 
-        /// <summary>
-        ///A test for Type
-        ///</summary>
-        [TestMethod()]
-        public void TypeTest()
-        {
-            Log log = null; // TODO: Initialize to an appropriate value
-            Log target = new Log(log); // TODO: Initialize to an appropriate value
-            LogType expected = new LogType(); // TODO: Initialize to an appropriate value
-            LogType actual;
-            target.Type = expected;
-            actual = target.Type;
-            Assert.AreEqual(expected, actual);
-            Assert.Inconclusive("Verify the correctness of this test method.");
+                switch ((Int32)TestContext.DataRow.ItemArray[(int)LogTestData.Type])
+                {
+                    case 1:
+                        logType = LogType.Warning;
+                        break;
+                    case 2:
+                        logType = LogType.Error;
+                        break;
+                    case 3:
+                        logType = LogType.Debug;
+                        break;
+                    default:
+                        logType = LogType.Normal;
+                        break;
+                }
+                indent = (Int32)(TestContext.DataRow.ItemArray[(int)LogTestData.Indent]);
+
+                Log log = new Log(message, title, logType, (UInt16)indent);
+
+                log.Type = LogType.Normal;
+                Assert.AreEqual<LogType>(log.Type, LogType.Normal);
+            }
         }
+        #endregion
     }
 }
