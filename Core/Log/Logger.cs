@@ -6,16 +6,22 @@ using System.Windows.Forms;
 
 namespace BigEgg.Core.Log
 {
+    public enum LoggerOutput
+    {
+        NotWriteToFile,
+        Regular,
+        RTF
+    }
+
     public class Logger
     {
-
         #region Class Setting
         private const UInt16 ConstCacheLength = 100;                 //  Every 100 non-Error Logs, save the Logs to the File.
         private const UInt16 ConstCacheTimeInterval = 60000;         //  Every 1 minute, save the Logs to the File.
 
         //  File Name
-        private String LogFileName = DateTime.Now.ToString("yyyy-MM-dd") + "_Log";
-        private String ErrorLogFileName = DateTime.Now.ToString("yyyy-MM-dd") + "_ErrorLog";
+        private readonly String LogFileName = DateTime.Now.ToString("yyyy-MM-dd") + "_Log";
+        //  private readonly String ErrorLogFileName = DateTime.Now.ToString("yyyy-MM-dd") + "_ErrorLog";
 
         //  Log String Setting
         private String ConstLogTimeFormatString = "HH:mm:ss.ffff";
@@ -33,59 +39,58 @@ namespace BigEgg.Core.Log
         #endregion
         
         #region Properties
+        private Boolean _IsDebugEnabled;
         /// <summary>
         /// If IsDebugEnabled is false, LoggerRepository will not save the Debug Type log.
         /// </summary>
-        public Boolean IsDebugEnabled { get; set; }
+        public Boolean IsDebugEnabled 
+        {
+            get
+            {
+                return _IsDebugEnabled;
+            }
+            set
+            {
+                _IsDebugEnabled = value;
+            }
+        }
 
+        private String _LogFilePath;
         /// <summary>
         /// The path where the logs file will saved.
         /// </summary>
+        /// <exception cref="ArgumentException">LogFilePath property could not be NULL or empty.</exception>
         public String LogFilePath
         {
             get
             {
-                return LogFilePath;
+                return _LogFilePath;
             }
             set
             {
-                if ((value == null) || (value == String.Empty))
-                    throw (new NullReferenceException("Message Property could not be empty."));
+                if ((value == null) || (value.Trim() == String.Empty))
+                    throw new ArgumentException("LogFilePath property could not be NULL or empty.");
 
-                LogFilePath = value;
+                _LogFilePath = value;
             }
         }
+
+        private LoggerOutput _OutputSetting;
         /// <summary>
-        /// If IsWriteLogFile is true, first Logger will save all the logs to the log files. Then automate start a Thread to write the log files every ConstCacheTimeInterval (60000) millionseconds.
+        /// Get the Output Seeting of the Logger class.
         /// </summary>
-        public Boolean IsWriteLogFile
+        public LoggerOutput OutputSetting
         {
             get
             {
-                return IsWriteLogFile;
-            }
-            set
-            {
-                IsWriteLogFile = value;
-
-                //  if IsWriteLogFile is true, first Logger will save all the logs to the log files.
-                //  Then automate start a Thread to write the log files every ConstCacheTimeInterval millionseconds.
-                if (IsWriteLogFile)
-                {
-                    WriteAllLogs();
-
-                    //  Create a TimerCallback, it will run WriteLogs WriteLogs
-                    timerDelegate = new System.Threading.TimerCallback(WriteCacheLogs);
-                    //  Create the Timmer Class
-                    timer = new System.Threading.Timer(timerDelegate, null, ConstCacheTimeInterval, ConstCacheTimeInterval);
-                }
+                if (_OutputSetting == null)
+                    _OutputSetting = LoggerOutput.NotWriteToFile;
+                return _OutputSetting;
             }
         }
 
-        /// <summary>
-        /// If IsRTFFile is true, Log file will be saved to a rtf file with a color Log.
-        /// </summary>
-        public Boolean IsRTFFile { get; set; }
+        #region Color Seting
+        private Color _LogTimeColor;
         /// <summary>
         /// The color setting of Log's Time when Logger use RTF file to save the logs.
         /// </summary>
@@ -93,15 +98,15 @@ namespace BigEgg.Core.Log
         {
             get
             {
-                if (LogTimeColor == null)
-                    LogTimeColor = ConstLogTimeColor;
-                return LogTimeColor;
+                return _LogTimeColor;
             }
             set
             {
-                LogTimeColor = value;
+                _LogTimeColor = value;
             }
         }
+
+        private Color _LogTitleColor;
         /// <summary>
         /// The color setting of Log's Title when Logger use RTF file to save the logs.
         /// </summary>
@@ -109,15 +114,15 @@ namespace BigEgg.Core.Log
         {
             get
             {
-                if (LogTitleColor == null)
-                    LogTitleColor = ConstLogWarningMessageColor;
-                return LogTitleColor;
+                return _LogTitleColor;
             }
             set
             {
-                LogTitleColor = value;
+                _LogTitleColor = value;
             }
         }
+
+        private Color _LogWarningMessageColor;
         /// <summary>
         /// The color setting of Warning Log's Message when Logger use RTF file to save the logs.
         /// </summary>
@@ -125,15 +130,15 @@ namespace BigEgg.Core.Log
         {
             get
             {
-                if (LogWarningMessageColor == null)
-                    LogWarningMessageColor = ConstLogWarningMessageColor;
-                return LogWarningMessageColor;
+                return _LogWarningMessageColor;
             }
             set
             {
-                LogWarningMessageColor = value;
+                _LogWarningMessageColor = value;
             }
         }
+
+        private Color _LogDebugMessageColor;
         /// <summary>
         /// The color setting of Debug Log's Message when Logger use RTF file to save the logs.
         /// </summary>
@@ -141,15 +146,15 @@ namespace BigEgg.Core.Log
         {
             get
             {
-                if (LogDebugMessageColor == null)
-                    LogDebugMessageColor = ConstLogDebugMessageColor;
-                return LogDebugMessageColor;
+                return _LogDebugMessageColor;
             }
             set
             {
-                LogDebugMessageColor = value;
+                _LogDebugMessageColor = value;
             }
         }
+
+        private Color _LogNormalMessageColor;
         /// <summary>
         /// The color setting of Normal Log's Message when Logger use RTF file to save the logs.
         /// </summary>
@@ -157,15 +162,15 @@ namespace BigEgg.Core.Log
         {
             get
             {
-                if (LogNormalMessageColor == null)
-                    LogNormalMessageColor = ConstLogNormalMessageColor;
-                return LogNormalMessageColor;
+                return _LogNormalMessageColor;
             }
             set
             {
-                LogNormalMessageColor = value;
+                _LogNormalMessageColor = value;
             }
         }
+
+        private Color _LogErrorMessageColor;
         /// <summary>
         /// The color setting of Error Log's Message when Logger use RTF file to save the logs.
         /// </summary>
@@ -173,16 +178,17 @@ namespace BigEgg.Core.Log
         {
             get
             {
-                if (LogErrorMessageColor == null)
-                    LogErrorMessageColor = ConstLogErrorMessageColor;
-                return LogErrorMessageColor;
+                return _LogErrorMessageColor;
             }
             set
             {
-                LogErrorMessageColor = value;
+                _LogErrorMessageColor = value;
             }
         }
+        #endregion
 
+        #region Font Seting
+        private Font _LogTimeFont;
         /// <summary>
         /// The Font setting of Log's Time when Logger use RTF file to save the logs.
         /// </summary>
@@ -190,15 +196,17 @@ namespace BigEgg.Core.Log
         {
             get
             {
-                if (LogTimeFont == null)
-                    LogTimeFont = ConstLogTimeFont;
-                return LogTimeFont;
+                if (_LogTimeFont == null)
+                    _LogTimeFont = ConstLogTimeFont;
+                return _LogTimeFont;
             }
             set
             {
                 LogTimeFont = value;
             }
         }
+
+        private Font _LogTitleFont;
         /// <summary>
         /// The Font setting of Log's Title when Logger use RTF file to save the logs.
         /// </summary>
@@ -206,15 +214,17 @@ namespace BigEgg.Core.Log
         {
             get
             {
-                if (LogTitleFont == null)
-                    LogTitleFont = ConstLogTitleFont;
-                return LogTitleFont;
+                if (_LogTitleFont == null)
+                    _LogTitleFont = ConstLogTitleFont;
+                return _LogTitleFont;
             }
             set
             {
-                LogTitleFont = value;
+                _LogTitleFont = value;
             }
         }
+
+        private Font _LogMessageFont;
         /// <summary>
         /// The Font setting of Log's Message when Logger use RTF file to save the logs.
         /// </summary>
@@ -222,27 +232,31 @@ namespace BigEgg.Core.Log
         {
             get
             {
-                if (LogMessageFont == null)
-                    LogMessageFont = ConstLogMessageFont;
-                return LogMessageFont;
+                if (_LogMessageFont == null)
+                    _LogMessageFont = ConstLogMessageFont;
+                return _LogMessageFont;
             }
             set
             {
-                LogMessageFont = value;
+                _LogMessageFont = value;
             }
         }
+        #endregion
         #endregion
 
         #region Members
         //  Logs' Member
         private List<Log> _Logs;
-        private List<Log> _ErrorLogs;
+        //private List<Log> _ErrorLogs;
         private List<Log> _LogsCache;
-        private Log _ErrorLogsCache;
+        //private Log _ErrorLogsCache;
 
         //  Title's Members
         private List<String> _Title;
         private String _TitleString;
+
+        //  Indent's member
+        private UInt16 _Indent;
 
         //  Lock Object
         private Object lockthis = new Object();
@@ -257,105 +271,143 @@ namespace BigEgg.Core.Log
         /// </summary>
         /// <param name="isWriteLogFile">Set if the logs need to save to a file</param>
         /// <param name="logFilePath">the Path of log files</param>
-        public Logger(Boolean isWriteLogFile, String logFilePath, Boolean isRTFFile = true)
+        public Logger(String logFilePath, 
+            LoggerOutput outputSetting = LoggerOutput.NotWriteToFile,
+            Boolean isDebugEnabled = false)
         {
+            _IsDebugEnabled = isDebugEnabled;
+            _OutputSetting = outputSetting;
+            LogFilePath = logFilePath;
+            AddLog("Start Initialize Logger Class", "Logger::Logger()", LogType.Debug);
+            
+            //  Initialize Logs' Member
             _Logs = new List<Log>();
-            _ErrorLogs = new List<Log>();
             _LogsCache = new List<Log>();
-            _ErrorLogsCache = null;
 
+            //  Initialize Title's Members
             _Title = new List<String>();
             _TitleString = String.Empty;
 
-            IsDebugEnabled = false;
+            //  Initialize Indent's Members
+            _Indent = 0;
 
-            IsWriteLogFile = isWriteLogFile;
-            IsRTFFile = isRTFFile;
-            LogFilePath = logFilePath;
+            InitializeRTFString();
+            AddLog("Initialize Logger Class End", "Logger::Logger()", LogType.Debug);
+
+            //  Output Thread Setting
+            OutputThread();
+        }
+
+        /// <summary>
+        /// Initialize the Format of RTF String 
+        /// </summary>
+        private void InitializeRTFString()
+        {
+            AddLog("Start Initialize the Format of RTF String", 
+                "Logger::InitializeRTFString()", LogType.Debug);
+            _LogTimeColor = ConstLogTimeColor;
+            _LogTitleColor = ConstLogTitleColor;
+            _LogWarningMessageColor = ConstLogWarningMessageColor;
+            _LogDebugMessageColor = ConstLogDebugMessageColor;
+            _LogNormalMessageColor = ConstLogNormalMessageColor;
+            _LogErrorMessageColor = ConstLogErrorMessageColor;
+
+            _LogTimeFont = ConstLogTimeFont;
+            _LogTitleFont = ConstLogTitleFont;
+            _LogMessageFont = ConstLogMessageFont;
+            AddLog("Initialize the Format of RTF String End", 
+                "Logger::InitializeRTFString()", LogType.Debug);
         }
 
         #region Methods
         #region Add Logs
+        /// <summary>
+        /// Add the customer Log into the logger.
+        /// </summary>
+        /// <param name="message">Log message</param>
+        /// <param name="title">Log title</param>
+        /// <param name="logType">Log type</param>
+        /// <param name="indent">Log indent</param>
+        private void AddLog(String message, String title = "", LogType logType = LogType.Normal, UInt16 indent = 0)
+        {
+            Log tempLog = new Log(message, title, logType, indent);
+            AddLog(tempLog);
+        }
+        /// <summary>
+        /// Add the log into the logger.
+        /// </summary>
+        /// <param name="log">A new Log</param>
         private void AddLog(Log log)
         {
             Boolean _NeedWriteToFile = false;
 
             lock (lockthis)
             {
-                if (log.Type != LogType.Error)
-                {
-                    _Logs.Add(log);
-                    _LogsCache.Add(log);
+                _Logs.Add(log);
+                _LogsCache.Add(log);
 
-                    if (_LogsCache.Count >= ConstCacheLength)
-                        _NeedWriteToFile = true;
-                }
-                else
-                {
-                    _ErrorLogs.Add(log);
-                    _ErrorLogsCache = new Log(log);
+                if (_LogsCache.Count >= ConstCacheLength)
                     _NeedWriteToFile = true;
-                }
+
+                if (log.Type == LogType.Error)
+                    _NeedWriteToFile = true;
             }
 
             //  Need write the Log to log files ASAP
-            if ((_NeedWriteToFile) && (IsWriteLogFile))
+            if ((_NeedWriteToFile) && (_OutputSetting != LoggerOutput.NotWriteToFile))
             {
-                WriteCacheLogs(null);
+                OutputCacheLogs(null);
             }
         }
+
         /// <summary>
-        /// Add a message as a Error message
+        /// Create a Log as a Error message and add it into logger
         /// </summary>
         /// <param name="message">Log message</param>
-        /// <param name="indent">indent of the message</param>
-        public void AddError(String message, String title = "", UInt16 indent = 0)
+        public void AddError(String message)
         {
-            Log tempLog = Log.CreateErrorLog(_TitleString + message, title, indent);
+            Log tempLog = Log.CreateErrorLog(message, _TitleString, _Indent);
             AddLog(tempLog);
         }
         /// <summary>
-        /// Add a message as a Warning message
+        /// Create a Log as a Warning message and add it into logger
         /// </summary>
         /// <param name="message">Log message</param>
-        /// <param name="indent">indent of the message</param>
-        public void AddWarning(String message, String title = "", UInt16 indent = 0)
+        public void AddWarning(String message)
         {
-            Log tempLog = Log.CreateWarningLog(_TitleString + message, title, indent);
+            Log tempLog = Log.CreateWarningLog(message, _TitleString, _Indent);
             AddLog(tempLog);
         }
         /// <summary>
-        /// Add a message as a Normal message
+        /// Create a Log as a Normal message and add it into logger
         /// </summary>
         /// <param name="message">Log message</param>
-        /// <param name="indent">indent of the message</param>
-        public void AddNormal(String message, String title = "", UInt16 indent = 0)
+        public void AddNormal(String message)
         {
-            Log tempLog = Log.CreateNormalLog(_TitleString + message, title, indent);
+            Log tempLog = Log.CreateNormalLog(message, _TitleString, _Indent);
             AddLog(tempLog);
         }
         /// <summary>
-        /// Add a message as a Debug message
+        /// Create a Log as a Debug message and add it into logger
         /// </summary>
         /// <param name="message">Log message</param>
-        /// <param name="title">Log title</param>
-        /// <param name="indent">indent of the message</param>
-        public void AddDebug(String message, String title = "", UInt16 indent = 0)
+        public void AddDebug(String message)
         {
-            //  Don't save the Info type message
+            //  Don't save the Debug type message, when IsDebugEnabled is false.
             if (!IsDebugEnabled)
                 return;
 
-            Log tempLog = Log.CreateDebugLog(_TitleString + message, title, indent);
+            Log tempLog = Log.CreateDebugLog(message, _TitleString, _Indent);
             AddLog(tempLog);
         }
         #endregion
+
         #region Title Setting
         /// <summary>
         /// Start a Title, all new log message will auto add the Title
         /// </summary>
         /// <param name="title">Title</param>
-        public void StartTitle(String title)
+        public void TitleStart(String title)
         {
             _Title.Add(title);
             ChangeTitleString();
@@ -364,7 +416,7 @@ namespace BigEgg.Core.Log
         /// Remove last Title.
         /// </summary>
         /// <exception cref="IndexOutOfRangeException">When there is no Title</exception>
-        public void EndTitle()
+        public void TitleEnd()
         {
             //  If there is no Title anymore
             if (_Title.Count == 0)
@@ -405,138 +457,119 @@ namespace BigEgg.Core.Log
                 _TitleString += "::" + _Title[i];
         }
         #endregion
-        #region Write to File
+
+        #region Indent Setting
         /// <summary>
-        /// Write the Cache logs and the Error Cache log to the log files.
+        /// Indent add 1, all new log message will auto add the Title
+        /// </summary>
+        /// <param name="title">Title</param>
+        public void IndentAdd(String title)
+        {
+            _Indent++;
+        }
+        /// <summary>
+        /// Indent minus 1, all new log message will auto add the Title
+        /// </summary>
+        /// <exception cref="IndexOutOfRangeException">When there is no indent</exception>
+        public void IndentMinus()
+        {
+            //  If there is no indent anymore
+            if (_Indent == 0)
+            {
+                throw new IndexOutOfRangeException("There is no indent anymore");
+            }
+
+            //  Indent minus 1
+            _Indent--;
+        }
+        /// <summary>
+        /// Clear all the Indent
+        /// </summary>
+        public void ClearIndent()
+        {
+            _Indent = 0;
+        }
+        #endregion
+
+        #region Output Setting
+        /// <summary>
+        /// Set the new Output Setting.
+        /// </summary>
+        /// <param name="newOutputSetting">The new output setting. If it is NotWriteToFile, it will stop the output Thread</param>
+        public void OutputSettingChange(LoggerOutput newOutputSetting)
+        {
+            //  If the new Setting as same as the Current Setting, just ignore.
+            if (_OutputSetting == newOutputSetting)
+                return;
+
+            //  If the Current Setting will have output. First output all the logs.
+            if (_OutputSetting != LoggerOutput.NotWriteToFile)
+            {
+                AddLog("Output all the logs, before the Output Setting is changed.", 
+                    "Logger::OutputSettingChange(LoggerOutput)", LogType.Debug);
+                OutputCacheLogs(null);
+            }
+
+            //  Change the Output Setting
+            _OutputSetting = newOutputSetting;
+            AddLog("The Output is set to " + newOutputSetting.ToString(),
+                    "Logger::OutputSettingChange(LoggerOutput)", LogType.Debug);
+
+            //  Output Thread Setting
+            OutputThread();
+        }
+        /// <summary>
+        /// Set the output thread. If the Output Setting have the output, it will start a thread to run the OutputCacheLogs function.
+        /// </summary>
+        private void OutputThread()
+        {
+            //  If the Output Setting have the output.
+            if (_OutputSetting != LoggerOutput.NotWriteToFile)
+            {
+                AddLog("Start a Thread to execute the output.", "Logger::OutputThread()", LogType.Debug);
+
+                //  Create a TimerCallback, it will run OutputCacheLogs(Object)
+                timerDelegate = new System.Threading.TimerCallback(OutputCacheLogs);
+                //  Create the Timer Class, to set the TimerCallback will run every ConstCacheTimeInterval millisecond.
+                timer = new System.Threading.Timer(timerDelegate, null, ConstCacheTimeInterval, ConstCacheTimeInterval);
+
+                AddLog("Start a Thread to execute the output Succeed.", "Logger::OutputThread()", LogType.Debug);
+            }
+            else
+            {
+                //  Close the Thread
+                timer.Dispose();
+                AddLog("Close the output Thread.", "Logger::OutputThread()", LogType.Debug);
+            }
+        }
+        /// <summary>
+        /// Output the Cache logs and the Error Cache log
         /// </summary>
         /// <param name="state">Use for TimerCallback Class, will not use in the method</param>
-        private void WriteCacheLogs(Object state)
+        private void OutputCacheLogs(Object state)
         {
-            //  Check if need write the logs to files.
-            if (!IsWriteLogFile)
+            //  Return if there don't have any logs to output
+            if (_LogsCache.Count == 0)
                 return;
 
-            //  Create a new StreamWriter class to write files
-            StreamWriter writer;
-
-            lock (lockthis)
+            switch (_OutputSetting)
             {
-                #region Trace Log
-                //  When the log cache have items
-                if (_LogsCache.Count != 0)
-                {
-                    writer = new StreamWriter(LogFileName + ".rtf", false);
-
-                    //  Check if the output file is the RTF file.
-                    if (IsRTFFile)
-                    {
-                        RichTextBox output = new RichTextBox();
-                        output.Text = String.Empty;
-
-                        foreach (Log _log in _LogsCache)
-                            output.Rtf += FormatLogRTF(_log);
-
-                        output.SaveFile(writer.BaseStream, RichTextBoxStreamType.RichText);
-                    }
-                    else
-                    {
-                        foreach (Log _log in _LogsCache)
-                            writer.WriteLine(FormatLogString(_log));
-                    }
-                    writer.Close();
-                }
-                #endregion
-                #region Error Log
-                //  When the error log cache have items
-                if (_ErrorLogsCache != null)
-                {
-                    writer = new StreamWriter(ErrorLogFileName + ".rtf", true);
-                    if (IsRTFFile)
-                    {
-                        RichTextBox output = new RichTextBox();
-                        output.Text = String.Empty;
-
-                        output.Rtf += FormatLogRTF(_ErrorLogsCache);
-
-                        output.SaveFile(writer.BaseStream, RichTextBoxStreamType.RichText);
-                    }
-                    else
-                    {
-                        writer.WriteLine(FormatLogString(_ErrorLogsCache));
-                    }
-                    writer.Close();
-                }
-                #endregion
-            }
-
-            //  Clear cache logs
-            _LogsCache.Clear();
-            _ErrorLogsCache = null;
-        }
-        /// <summary>
-        /// Write all the logs and al the Error log to the log files. This will overwrite the log file.
-        /// </summary>
-        private void WriteAllLogs()
-        {
-            //  Check if need write the logs to files.
-            if (!IsWriteLogFile)
-                return;
-
-            //  Create a new StreamWriter class to write files
-            StreamWriter writer;
-
-            lock (lockthis)
-            {
-                #region Trace Log
-                //  When the log cache have items
-                if (_LogsCache.Count != 0)
-                {
-                    writer = new StreamWriter(LogFileName + ".rtf", false);
-
-                    //  Check if the output file is the RTF file.
-                    if (IsRTFFile)
-                    {
-                        RichTextBox output = new RichTextBox();
-                        output.Text = String.Empty;
-
-                        foreach (Log _log in _Logs)
-                            output.Rtf += FormatLogRTF(_log);
-
-                        output.SaveFile(writer.BaseStream, RichTextBoxStreamType.RichText);
-                    }
-                    else
-                    {
-                        foreach (Log _log in _Logs)
-                            writer.WriteLine(FormatLogString(_log));
-                    }
-                    writer.Close();
-                }
-                #endregion
-                #region Error Log
-                //  When the log cache have items
-                if (_ErrorLogs.Count != 0)
-                {
-                    writer = new StreamWriter(ErrorLogFileName + ".rtf", true);
-                    if (IsRTFFile)
-                    {
-                        RichTextBox output = new RichTextBox();
-                        output.Text = String.Empty;
-
-                        foreach (Log _log in _ErrorLogs)
-                            output.Rtf += FormatLogRTF(_log);
-
-                        output.SaveFile(writer.BaseStream, RichTextBoxStreamType.RichText);
-                    }
-                    else
-                    {
-                        foreach (Log _log in _ErrorLogs)
-                            writer.WriteLine(FormatLogString(_log));
-                    }
-                    writer.Close();
-                }
-                #endregion
+                case LoggerOutput.NotWriteToFile:
+                    AddLog("The Output is NotWriteToFile, don't need output.",
+                        "Logger::OutputCacheLogs(state)", LogType.Debug);
+                    return;
+                case LoggerOutput.Regular:
+                    WriteRegularCacheLogs();
+                    break;
+                case LoggerOutput.RTF:
+                    WriteRTFCacheLogs();
+                    break;
             }
         }
+        #endregion
+
+        #region Output
+        #region Output String Format
         /// <summary>
         /// Format the log information to the String.
         /// </summary>
@@ -627,41 +660,134 @@ namespace BigEgg.Core.Log
             return rtfText.Rtf;
         }
         #endregion
+
+        #region Regular Output
+        /// <summary>
+        /// Write the Cache logs and the Error Cache log to the Regular log file.
+        /// </summary>
+        private void WriteRegularCacheLogs()
+        {
+            //  If the Output Setting is not the LoggerOutput.Regular.
+            if (_OutputSetting != LoggerOutput.Regular)
+            {
+                AddLog("The Output is not Regular, output have error.",
+                    "Logger::WriteRegularCacheLogs()", LogType.Debug);
+                return;
+            }
+
+            lock (lockthis)
+            {
+                AddLog("Lock the list and output the logs.",
+                    "Logger::WriteRegularCacheLogs()", LogType.Debug);
+
+                //  Create a new StreamWriter class to write files
+                StreamWriter writer;
+
+                //  When the log cache have items
+                if (_LogsCache.Count != 0)
+                {
+                    //  When the log cache have items
+                    if (_LogsCache.Count != 0)
+                    {
+                        writer = new StreamWriter(LogFileName + ".log", false);
+
+                        foreach (Log _log in _LogsCache)
+                            writer.WriteLine(FormatLogString(_log));
+                        writer.Close();
+                    }
+                }
+
+            }
+
+            //  Clear cache logs
+            _LogsCache.Clear();
+        }
+        #endregion
+
+        #region RTF Output
+        /// <summary>
+        /// Write the Cache logs and the Error Cache log to the Regular log file.
+        /// </summary>
+        private void WriteRTFCacheLogs()
+        {
+            //  If the Output Setting is not the LoggerOutput.Regular.
+            if (_OutputSetting != LoggerOutput.RTF)
+            {
+                AddLog("The Output is not RTF, output have error.",
+                    "Logger::WriteRTFCacheLogs()", LogType.Debug);
+                return;
+            }
+
+            lock (lockthis)
+            {
+                AddLog("Lock the list and output the logs.",
+                    "Logger::WriteRTFCacheLogs()", LogType.Debug);
+                //  Create a new StreamWriter class to write files
+                StreamWriter writer;
+
+                //  When the log cache have items
+                if (_LogsCache.Count != 0)
+                {
+                    //  When the log cache have items
+                    if (_LogsCache.Count != 0)
+                    {
+                        writer = new StreamWriter(LogFileName + ".rtf", false);
+
+                        RichTextBox output = new RichTextBox();
+                        output.Text = String.Empty;
+
+                        foreach (Log _log in _LogsCache)
+                            output.Rtf += FormatLogRTF(_log);
+
+                        output.SaveFile(writer.BaseStream, RichTextBoxStreamType.RichText);
+
+                        writer.Close();
+                    }
+                }
+
+            }
+
+            //  Clear cache logs
+            _LogsCache.Clear();
+        }
+        #endregion
+        #endregion
+
         /// <summary>
         /// Add all the logs form a Logger class
         /// </summary>
         /// <param name="source">The source Logger class </param>
         /// <param name="title">Add title to the logs in the source</param>
         /// <param name="indent">Add indent to the logs in the source</param>
-        public void MergeLogger(Logger source, String title = "", UInt16 indent = 0)
+        public void MergeLogger(Logger source)
         {
-            lock (lockthis)
+            if (source == null)
+                throw new ArgumentNullException("source", "The merge source could not be NULL");
+
+            //  Check if the source have logs.
+            if (source._Logs.Count == 0)
             {
-                int i = 0;
-                int j = 0;
-                while ((i < source._Logs.Count) && (j < _Logs.Count))
-                {
-                    //  if log's time is smaller
-                    if (source._Logs[i].Time.CompareTo(_Logs[j].Time) == -1)
-                    {
-                        //  Add title
-                        if (source._Logs[i].Title == String.Empty)
-                            source._Logs[i].Title = title;
-                        else
-                            source._Logs[i].Title = title + "::" + source._Logs[i].Title;
+                AddLog("The source don't have any logs.",
+                    "Logger::MergeLogger(source)", LogType.Debug);
+                return;
+            }
 
-                        //  Add indent
-                        source._Logs[i].Indent += indent;
+            AddLog("Start merge.",
+                "Logger::MergeLogger(source)", LogType.Debug);
 
-                        _Logs.Insert(j, source._Logs[i]);
-                        i++;
-                        j++;
-                    }
-                    else
-                        j++;
-                }
-                while (i < source._Logs.Count)
-                    _Logs.Add(source._Logs[i++]);
+            //  Merge logs
+            foreach (Log _logs in source._Logs)
+            {
+                //  Add title
+                if (_logs.Title == String.Empty)
+                    _logs.Title = _TitleString;
+                else
+                    _logs.Title = _TitleString + "::" + _logs.Title;
+
+                //  Add indent
+                _logs.Indent += _Indent;
+
+                AddLog(_logs);
             }
         }
         #endregion

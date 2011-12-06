@@ -87,6 +87,7 @@ namespace BigEgg.Core.Log
         /// <param name="title">Log title</param>
         /// <param name="type">Log type: Error, Warning, Normal or Debug</param>
         /// <param name="indent">indent of the message</param>
+        /// <exception cref="ArgumentNullException">The message parameter could not be NULL or empty.</exception>
         public Log(String message, String title = "", LogType type = LogType.Normal, UInt16 indent = 0)
         {
             if ((message == null) || (message.Trim() == String.Empty))
@@ -118,6 +119,7 @@ namespace BigEgg.Core.Log
         /// <param name="message">Log message</param>
         /// <param name="title">Log title</param>
         /// <param name="indent">indent of the message</param>
+        /// <exception cref="ArgumentNullException">The message parameter could not be NULL or empty.</exception>
         public static Log CreateErrorLog(String message, String title = "", UInt16 indent = 0)
         {
             if ((message == null) || (message.Trim() == String.Empty))
@@ -131,6 +133,7 @@ namespace BigEgg.Core.Log
         /// <param name="message">Log message</param>
         /// <param name="title">Log title</param>
         /// <param name="indent">indent of the message</param>
+        /// <exception cref="ArgumentNullException">The message parameter could not be NULL or empty.</exception>
         public static Log CreateWarningLog(String message, String title = "", UInt16 indent = 0)
         {
             if ((message == null) || (message.Trim() == String.Empty))
@@ -144,6 +147,7 @@ namespace BigEgg.Core.Log
         /// <param name="message">Log message</param>
         /// <param name="title">Log title</param>
         /// <param name="indent">indent of the message</param>
+        /// <exception cref="ArgumentNullException">The message parameter could not be NULL or empty.</exception>
         public static Log CreateNormalLog(String message, String title = "", UInt16 indent = 0)
         {
             if ((message == null) || (message.Trim() == String.Empty))
@@ -157,6 +161,7 @@ namespace BigEgg.Core.Log
         /// <param name="message">Log message</param>
         /// <param name="title">Log title</param>
         /// <param name="indent">indent of the message</param>
+        /// <exception cref="ArgumentNullException">The message parameter could not be NULL or empty.</exception>
         public static Log CreateDebugLog(String message, String title = "", UInt16 indent = 0)
         {
             if ((message == null) || (message.Trim() == String.Empty))
