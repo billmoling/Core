@@ -2,6 +2,7 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Drawing;
+using System.Collections.Generic;
 
 namespace CoreTest
 {
@@ -14,7 +15,14 @@ namespace CoreTest
     [TestClass()]
     public class LoggerTest
     {
-
+        enum LoggerTestData
+        {
+            ID,
+            LogFilePath,
+            Type,
+            IsDebug,
+            IsValid
+        }
 
         private TestContext testContextInstance;
 
@@ -65,550 +73,498 @@ namespace CoreTest
         #endregion
 
 
+        #region Constructor Test
         /// <summary>
-        ///A test for Logger Constructor
-        ///</summary>
-        [TestMethod()]
-        public void LoggerConstructorTest()
+        /// A test for Logger Constructor
+        /// </summary>
+        [DataSource("System.Data.OleDb",
+            "Provider=Microsoft.ACE.OLEDB.12.0;Data Source=D:\\Core\\CoreTest\\TestData.accdb",
+            "LoggerData", DataAccessMethod.Sequential), TestMethod()]
+        public void Logger_Constructor_Test()
         {
-            string logFilePath = string.Empty; // TODO: Initialize to an appropriate value
-            LoggerOutput outputSetting = new LoggerOutput(); // TODO: Initialize to an appropriate value
-            bool isDebugEnabled = false; // TODO: Initialize to an appropriate value
-            Logger target = new Logger(logFilePath, outputSetting, isDebugEnabled);
-            Assert.Inconclusive("TODO: Implement code to verify target");
+            Boolean valid = (Boolean)TestContext.DataRow.ItemArray[(int)LoggerTestData.IsValid];
+            String logFilePath;
+            LoggerOutputSetting outputSetting;
+            Boolean isDebugEnabled;
+
+            Object temp = TestContext.DataRow.ItemArray[(int)LoggerTestData.LogFilePath];
+            if (temp is System.DBNull)
+                logFilePath = null;
+            else
+                logFilePath = (String)temp;
+
+            switch ((Int32)TestContext.DataRow.ItemArray[(int)LoggerTestData.Type])
+            {
+                case 1:
+                    outputSetting = LoggerOutputSetting.NotWriteToFileRTF;
+                    break;
+                case 2:
+                    outputSetting = LoggerOutputSetting.Regular;
+                    break;
+                case 3:
+                    outputSetting = LoggerOutputSetting.RTF;
+                    break;
+                default:
+                    outputSetting = LoggerOutputSetting.NotWriteToFileRegular;
+                    break;
+            }
+
+            isDebugEnabled = (Boolean)TestContext.DataRow.ItemArray[(int)LoggerTestData.IsDebug];
+
+
+            if (valid)
+            {
+                Logger target = new Logger(outputSetting, logFilePath, isDebugEnabled);
+                Assert.AreEqual(target.IsDebugEnabled, isDebugEnabled);
+                Assert.AreEqual(target.LogFilePath, logFilePath);
+                Assert.AreEqual(target.OutputSetting, outputSetting);
+
+                if (isDebugEnabled)
+                    switch (outputSetting)
+                    {
+                        case LoggerOutputSetting.NotWriteToFileRegular:
+                        case LoggerOutputSetting.NotWriteToFileRTF:
+                            Assert.AreEqual(target.Logs.Count, 5);
+                            break;
+                        case LoggerOutputSetting.Regular:
+                        case LoggerOutputSetting.RTF:
+                            Assert.AreEqual(target.Logs.Count, 6);
+                            break;
+                    }
+                else
+                    Assert.AreEqual(target.Logs.Count, 0);
+
+                Assert.AreEqual(target.Indent, 0);
+                Assert.AreEqual(target.TitleString, String.Empty);
+
+                Assert.AreEqual(target.LogTimeFont, new Font("Calibri", 11, FontStyle.Italic));
+                Assert.AreEqual(target.LogTitleFont, new Font("Calibri", 11, FontStyle.Bold));
+                Assert.AreEqual(target.LogMessageFont, new Font("Calibri", 11, FontStyle.Regular));
+
+                Assert.AreEqual(target.LogTimeColor, Color.FromArgb(217, 116, 43));
+                Assert.AreEqual(target.LogTitleColor, Color.FromArgb(230, 180, 80));
+                Assert.AreEqual(target.LogWarningMessageColor, Color.FromArgb(153, 77, 82));
+                Assert.AreEqual(target.LogDebugMessageColor, Color.FromArgb(227, 230, 195));
+                Assert.AreEqual(target.LogNormalMessageColor, Color.Black);
+                Assert.AreEqual(target.LogErrorMessageColor, Color.Red);
+            }
+            else
+            {
+                Exception exception = null;
+                try
+                {
+                    Logger target = new Logger(outputSetting, logFilePath, isDebugEnabled);
+                }
+                catch (Exception e)
+                {
+                    exception = e;
+                }
+                Assert.IsNotNull(exception, "The expected exception was not thrown.");
+                Assert.AreEqual<Type>(typeof(ArgumentNullException), exception.GetType(),
+                    "The exception type was unexpected.");
+            }
+        }
+        /// <summary>
+        /// A test for the default parameters in Logger Constructor
+        /// </summary>
+        [TestMethod()]
+        public void Logger_Constructor_DefaultTest()
+        {
+            Logger target = new Logger();
+            Assert.IsFalse(target.IsDebugEnabled);
+            Assert.AreEqual(target.LogFilePath, String.Empty);
+            Assert.AreEqual(target.OutputSetting, LoggerOutputSetting.NotWriteToFileRegular);
+
+            Assert.AreEqual(target.Logs.Count, 0);
+            Assert.AreEqual(target.Indent, 0);
+            Assert.AreEqual(target.TitleString, String.Empty);
+
+            Assert.AreEqual(target.LogTimeFont, new Font("Calibri", 11, FontStyle.Italic));
+            Assert.AreEqual(target.LogTitleFont, new Font("Calibri", 11, FontStyle.Bold));
+            Assert.AreEqual(target.LogMessageFont, new Font("Calibri", 11, FontStyle.Regular));
+
+            Assert.AreEqual(target.LogTimeColor, Color.FromArgb(217, 116, 43));
+            Assert.AreEqual(target.LogTitleColor, Color.FromArgb(230, 180, 80));
+            Assert.AreEqual(target.LogWarningMessageColor, Color.FromArgb(153, 77, 82));
+            Assert.AreEqual(target.LogDebugMessageColor, Color.FromArgb(227, 230, 195));
+            Assert.AreEqual(target.LogNormalMessageColor, Color.Black);
+            Assert.AreEqual(target.LogErrorMessageColor, Color.Red);
+        }
+        #endregion
+
+        #region Logger Method Test
+        /// <summary>
+        /// A test for the Addlog Methods in Logger Class
+        /// </summary>
+        [TestMethod()]
+        public void Logger_Method_Regular_Test()
+        {
+            Logger target = new Logger();
+            target.LogTimeFormatString = "11:11:11.1111";
+            LoggerSimulator(ref target);
+
+            List<String> expect = LogRegularStringSimulator(false);
+
+            for (int i = 0;i<target.Logs.Count; i++)
+                Assert.AreEqual(expect[i], target.Logs[i]);
+
+            target = new Logger(isDebugEnabled: true);
+            target.LogTimeFormatString = "11:11:11.1111";
+            LoggerSimulator(ref target);
+
+            expect = LogRegularStringSimulator(true);
+
+            for (int i = 0; i < target.Logs.Count; i++)
+                Assert.AreEqual(expect[i], target.Logs[i]);
         }
 
         /// <summary>
-        ///A test for AddDebug
-        ///</summary>
+        /// A test for the MergeLogger Methods in Logger Class
+        /// </summary>
         [TestMethod()]
-        public void AddDebugTest()
+        public void Logger_Method_MergeLogger_Test()
         {
-            string logFilePath = string.Empty; // TODO: Initialize to an appropriate value
-            LoggerOutput outputSetting = new LoggerOutput(); // TODO: Initialize to an appropriate value
-            bool isDebugEnabled = false; // TODO: Initialize to an appropriate value
-            Logger target = new Logger(logFilePath, outputSetting, isDebugEnabled); // TODO: Initialize to an appropriate value
-            string message = string.Empty; // TODO: Initialize to an appropriate value
-            target.AddDebug(message);
-            Assert.Inconclusive("A method that does not return a value cannot be verified.");
+            Logger target = new Logger();
+            target.LogTimeFormatString = "11:11:11.1111";
+            LoggerSimulator(ref target);
+
+            Logger temp = new Logger(isDebugEnabled: true);
+            target.LogTimeFormatString = "11:11:11.1111";
+            LoggerSimulator(ref temp);
+
+            List<String> expect = LogRegularStringSimulator(false);
+            expect.AddRange(LogRegularStringSimulator(true));
+
+            for (int i = 0; i < target.Logs.Count; i++)
+                Assert.AreEqual(expect[i], target.Logs[i]);
         }
 
         /// <summary>
-        ///A test for AddError
-        ///</summary>
-        [TestMethod()]
-        public void AddErrorTest()
+        /// A test for OutputSettingChange Methods in Logger Class
+        /// </summary>
+        [DataSource("System.Data.OleDb",
+            "Provider=Microsoft.ACE.OLEDB.12.0;Data Source=D:\\Core\\CoreTest\\TestData.accdb",
+            "LoggerData", DataAccessMethod.Sequential), TestMethod()]
+        public void Logger_Method_OutputSettingChange_Test()
         {
-            string logFilePath = string.Empty; // TODO: Initialize to an appropriate value
-            LoggerOutput outputSetting = new LoggerOutput(); // TODO: Initialize to an appropriate value
-            bool isDebugEnabled = false; // TODO: Initialize to an appropriate value
-            Logger target = new Logger(logFilePath, outputSetting, isDebugEnabled); // TODO: Initialize to an appropriate value
-            string message = string.Empty; // TODO: Initialize to an appropriate value
-            target.AddError(message);
-            Assert.Inconclusive("A method that does not return a value cannot be verified.");
+            Logger target = new Logger();
+
+            Boolean valid = (Boolean)TestContext.DataRow.ItemArray[(int)LoggerTestData.IsValid];
+            String logFilePath;
+            LoggerOutputSetting outputSetting;
+
+            Object temp = TestContext.DataRow.ItemArray[(int)LoggerTestData.LogFilePath];
+            if (temp is System.DBNull)
+                logFilePath = null;
+            else
+                logFilePath = (String)temp;
+
+            switch ((Int32)TestContext.DataRow.ItemArray[(int)LoggerTestData.Type])
+            {
+                case 1:
+                    outputSetting = LoggerOutputSetting.NotWriteToFileRTF;
+                    break;
+                case 2:
+                    outputSetting = LoggerOutputSetting.Regular;
+                    break;
+                case 3:
+                    outputSetting = LoggerOutputSetting.RTF;
+                    break;
+                default:
+                    outputSetting = LoggerOutputSetting.NotWriteToFileRegular;
+                    break;
+            }
+
+            if (valid)
+            {
+                target.OutputSettingChange(outputSetting, logFilePath);
+
+                Assert.AreEqual(outputSetting, target.OutputSetting);
+
+                Assert.AreEqual(logFilePath, target.LogFilePath);
+            }
+            else
+            {
+                Exception exception = null;
+                try
+                {
+                    target.OutputSettingChange(outputSetting, logFilePath);
+                }
+                catch (Exception e)
+                {
+                    exception = e;
+                }
+                Assert.IsNotNull(exception, "The expected exception was not thrown.");
+                Assert.AreEqual<Type>(typeof(ArgumentNullException), exception.GetType(),
+                    "The exception type was unexpected.");
+            }
         }
 
         /// <summary>
-        ///A test for AddLog
-        ///</summary>
+        /// Will out the Regular log file, and the RTF log file. Need manually check if the output is correct.
+        /// </summary>
         [TestMethod()]
-        [DeploymentItem("Core.dll")]
-        public void AddLogTest()
+        public void Logger_Method_Output_Test()
         {
-            PrivateObject param0 = null; // TODO: Initialize to an appropriate value
-            Logger_Accessor target = new Logger_Accessor(param0); // TODO: Initialize to an appropriate value
-            Log log = null; // TODO: Initialize to an appropriate value
-            target.AddLog(log);
-            Assert.Inconclusive("A method that does not return a value cannot be verified.");
-        }
+            Logger target = new Logger(LoggerOutputSetting.Regular, @"D:\Core\CoreTest\bin\Debug");
+            LoggerSimulator(ref target);
 
-        /// <summary>
-        ///A test for AddLog
-        ///</summary>
-        [TestMethod()]
-        [DeploymentItem("Core.dll")]
-        public void AddLogTest1()
-        {
-            PrivateObject param0 = null; // TODO: Initialize to an appropriate value
-            Logger_Accessor target = new Logger_Accessor(param0); // TODO: Initialize to an appropriate value
-            string message = string.Empty; // TODO: Initialize to an appropriate value
-            string title = string.Empty; // TODO: Initialize to an appropriate value
-            LogType logType = new LogType(); // TODO: Initialize to an appropriate value
-            ushort indent = 0; // TODO: Initialize to an appropriate value
-            target.AddLog(message, title, logType, indent);
-            Assert.Inconclusive("A method that does not return a value cannot be verified.");
+            target = new Logger(LoggerOutputSetting.RTF, @"D:\Core\CoreTest\bin\Debug");
+            LoggerSimulator(ref target);
         }
+        #endregion
 
+        #region Properties Test
         /// <summary>
-        ///A test for AddNormal
-        ///</summary>
+        /// A test for Indent Property
+        /// </summary>
         [TestMethod()]
-        public void AddNormalTest()
+        public void Logger_Property_Indent_Test()
         {
-            string logFilePath = string.Empty; // TODO: Initialize to an appropriate value
-            LoggerOutput outputSetting = new LoggerOutput(); // TODO: Initialize to an appropriate value
-            bool isDebugEnabled = false; // TODO: Initialize to an appropriate value
-            Logger target = new Logger(logFilePath, outputSetting, isDebugEnabled); // TODO: Initialize to an appropriate value
-            string message = string.Empty; // TODO: Initialize to an appropriate value
-            target.AddNormal(message);
-            Assert.Inconclusive("A method that does not return a value cannot be verified.");
-        }
+            Logger target = new Logger();
+            Assert.AreEqual(0, target.Indent);
 
-        /// <summary>
-        ///A test for AddWarning
-        ///</summary>
-        [TestMethod()]
-        public void AddWarningTest()
-        {
-            string logFilePath = string.Empty; // TODO: Initialize to an appropriate value
-            LoggerOutput outputSetting = new LoggerOutput(); // TODO: Initialize to an appropriate value
-            bool isDebugEnabled = false; // TODO: Initialize to an appropriate value
-            Logger target = new Logger(logFilePath, outputSetting, isDebugEnabled); // TODO: Initialize to an appropriate value
-            string message = string.Empty; // TODO: Initialize to an appropriate value
-            target.AddWarning(message);
-            Assert.Inconclusive("A method that does not return a value cannot be verified.");
-        }
+            target.IndentAdd();
+            Assert.AreEqual(1, target.Indent);
 
-        /// <summary>
-        ///A test for ChangeTitleString
-        ///</summary>
-        [TestMethod()]
-        [DeploymentItem("Core.dll")]
-        public void ChangeTitleStringTest()
-        {
-            PrivateObject param0 = null; // TODO: Initialize to an appropriate value
-            Logger_Accessor target = new Logger_Accessor(param0); // TODO: Initialize to an appropriate value
-            target.ChangeTitleString();
-            Assert.Inconclusive("A method that does not return a value cannot be verified.");
-        }
+            target.IndentAdd();
+            Assert.AreEqual(2, target.Indent);
 
-        /// <summary>
-        ///A test for ClearIndent
-        ///</summary>
-        [TestMethod()]
-        public void ClearIndentTest()
-        {
-            string logFilePath = string.Empty; // TODO: Initialize to an appropriate value
-            LoggerOutput outputSetting = new LoggerOutput(); // TODO: Initialize to an appropriate value
-            bool isDebugEnabled = false; // TODO: Initialize to an appropriate value
-            Logger target = new Logger(logFilePath, outputSetting, isDebugEnabled); // TODO: Initialize to an appropriate value
-            target.ClearIndent();
-            Assert.Inconclusive("A method that does not return a value cannot be verified.");
-        }
-
-        /// <summary>
-        ///A test for ClearTitle
-        ///</summary>
-        [TestMethod()]
-        public void ClearTitleTest()
-        {
-            string logFilePath = string.Empty; // TODO: Initialize to an appropriate value
-            LoggerOutput outputSetting = new LoggerOutput(); // TODO: Initialize to an appropriate value
-            bool isDebugEnabled = false; // TODO: Initialize to an appropriate value
-            Logger target = new Logger(logFilePath, outputSetting, isDebugEnabled); // TODO: Initialize to an appropriate value
-            target.ClearTitle();
-            Assert.Inconclusive("A method that does not return a value cannot be verified.");
-        }
-
-        /// <summary>
-        ///A test for FormatLogRTF
-        ///</summary>
-        [TestMethod()]
-        [DeploymentItem("Core.dll")]
-        public void FormatLogRTFTest()
-        {
-            PrivateObject param0 = null; // TODO: Initialize to an appropriate value
-            Logger_Accessor target = new Logger_Accessor(param0); // TODO: Initialize to an appropriate value
-            Log log = null; // TODO: Initialize to an appropriate value
-            string expected = string.Empty; // TODO: Initialize to an appropriate value
-            string actual;
-            actual = target.FormatLogRTF(log);
-            Assert.AreEqual(expected, actual);
-            Assert.Inconclusive("Verify the correctness of this test method.");
-        }
-
-        /// <summary>
-        ///A test for FormatLogString
-        ///</summary>
-        [TestMethod()]
-        [DeploymentItem("Core.dll")]
-        public void FormatLogStringTest()
-        {
-            PrivateObject param0 = null; // TODO: Initialize to an appropriate value
-            Logger_Accessor target = new Logger_Accessor(param0); // TODO: Initialize to an appropriate value
-            Log log = null; // TODO: Initialize to an appropriate value
-            string expected = string.Empty; // TODO: Initialize to an appropriate value
-            string actual;
-            actual = target.FormatLogString(log);
-            Assert.AreEqual(expected, actual);
-            Assert.Inconclusive("Verify the correctness of this test method.");
-        }
-
-        /// <summary>
-        ///A test for IndentAdd
-        ///</summary>
-        [TestMethod()]
-        public void IndentAddTest()
-        {
-            string logFilePath = string.Empty; // TODO: Initialize to an appropriate value
-            LoggerOutput outputSetting = new LoggerOutput(); // TODO: Initialize to an appropriate value
-            bool isDebugEnabled = false; // TODO: Initialize to an appropriate value
-            Logger target = new Logger(logFilePath, outputSetting, isDebugEnabled); // TODO: Initialize to an appropriate value
-            string title = string.Empty; // TODO: Initialize to an appropriate value
-            target.IndentAdd(title);
-            Assert.Inconclusive("A method that does not return a value cannot be verified.");
-        }
-
-        /// <summary>
-        ///A test for IndentMinus
-        ///</summary>
-        [TestMethod()]
-        public void IndentMinusTest()
-        {
-            string logFilePath = string.Empty; // TODO: Initialize to an appropriate value
-            LoggerOutput outputSetting = new LoggerOutput(); // TODO: Initialize to an appropriate value
-            bool isDebugEnabled = false; // TODO: Initialize to an appropriate value
-            Logger target = new Logger(logFilePath, outputSetting, isDebugEnabled); // TODO: Initialize to an appropriate value
             target.IndentMinus();
-            Assert.Inconclusive("A method that does not return a value cannot be verified.");
+            Assert.AreEqual(1, target.Indent);
+
+            target.IndentAdd();
+            target.ClearIndent();
+            Assert.AreEqual(0, target.Indent);
+        }
+        /// <summary>
+        /// A test for IsDebugEnabled Property
+        /// </summary>
+        [TestMethod()]
+        public void Logger_Property_IsDebugEnabled_Test()
+        {
+            Logger target = new Logger();
+
+            target.IsDebugEnabled = true;
+            Assert.IsTrue(target.IsDebugEnabled);
+
+            target.IsDebugEnabled = false;
+            Assert.IsFalse(target.IsDebugEnabled);
+        }
+        /// <summary>
+        /// A test for LogFilePath Property
+        /// </summary>
+        [DataSource("System.Data.OleDb",
+            "Provider=Microsoft.ACE.OLEDB.12.0;Data Source=D:\\Core\\CoreTest\\TestData.accdb",
+            "LoggerData", DataAccessMethod.Sequential), TestMethod()]
+        public void Logger_Property_LogFilePath_Test()
+        {
+            Boolean valid = (Boolean)TestContext.DataRow.ItemArray[(int)LoggerTestData.IsValid];
+            String logFilePath;
+            LoggerOutputSetting outputSetting;
+
+            Object temp = TestContext.DataRow.ItemArray[(int)LoggerTestData.LogFilePath];
+            if (temp is System.DBNull)
+                logFilePath = null;
+            else
+                logFilePath = (String)temp;
+
+            switch ((Int32)TestContext.DataRow.ItemArray[(int)LoggerTestData.Type])
+            {
+                case 1:
+                    outputSetting = LoggerOutputSetting.NotWriteToFileRTF;
+                    break;
+                case 2:
+                    outputSetting = LoggerOutputSetting.Regular;
+                    break;
+                case 3:
+                    outputSetting = LoggerOutputSetting.RTF;
+                    break;
+                default:
+                    outputSetting = LoggerOutputSetting.NotWriteToFileRegular;
+                    break;
+            }
+
+            if (valid)
+            {
+                Logger target = new Logger(outputSetting, "123");
+
+                target.LogFilePath = logFilePath;
+
+                Assert.AreEqual(logFilePath, target.LogFilePath);
+            }
+            else
+            {
+                Exception exception = null;
+                try
+                {
+                    Logger target = new Logger(outputSetting, "123");
+
+                    target.LogFilePath = logFilePath;
+                }
+                catch (Exception e)
+                {
+                    exception = e;
+                }
+                Assert.IsNotNull(exception, "The expected exception was not thrown.");
+                Assert.AreEqual<Type>(typeof(ArgumentException), exception.GetType(),
+                    "The exception type was unexpected.");
+            }
+        }
+        /// <summary>
+        /// A test for LogTimeFormatString Property
+        /// </summary>
+        [TestMethod()]
+        public void Logger_Property_LogTimeFormatString_Test()
+        {
+            Logger target = new Logger();
+
+            target.LogTimeFormatString = "HH:mm:ss";
+            Assert.AreEqual("HH:mm:ss", target.LogTimeFormatString);
+
+            Exception exception = null;
+            try
+            {
+                target.LogTimeFormatString = "";
+            }
+            catch (Exception e)
+            {
+                exception = e;
+            }
+            Assert.IsNotNull(exception, "The expected exception was not thrown.");
+            Assert.AreEqual<Type>(typeof(ArgumentException), exception.GetType(),
+                "The exception type was unexpected.");
+        }
+        #endregion
+
+        #region Constructor Logger
+        /// <summary>
+        /// A simulator used to add lots of logs for a Logger class
+        /// </summary>
+        /// <param name="logger">A reference of the Logger class.</param>
+        public void LoggerSimulator(ref Logger logger)
+        {
+            logger.ClearIndent();
+            logger.ClearTitle();
+
+            logger.AddNormal("Test Line 1");
+            logger.AddWarning("Test Line 2");
+            logger.AddError("Test Line 3");
+            logger.AddDebug("Test Line 4");
+
+            logger.TitleStart("Title 1");
+            logger.AddNormal("Test Line 1");
+            logger.AddWarning("Test Line 2");
+            logger.AddError("Test Line 3");
+            logger.AddDebug("Test Line 4");
+
+            logger.TitleStart("Title 2");
+            logger.AddNormal("Test Line 1");
+            logger.AddWarning("Test Line 2");
+            logger.AddError("Test Line 3");
+            logger.AddDebug("Test Line 4");
+            logger.TitleEnd();
+
+            logger.AddNormal("Test Line 1");
+            logger.AddWarning("Test Line 2");
+            logger.AddError("Test Line 3");
+            logger.AddDebug("Test Line 4");
+
+            logger.IndentAdd();
+            logger.AddNormal("Test Line 1");
+            logger.AddWarning("Test Line 2");
+            logger.AddError("Test Line 3");
+            logger.AddDebug("Test Line 4");
+
+            logger.IndentAdd();
+            logger.AddNormal("Test Line 1");
+            logger.AddWarning("Test Line 2");
+            logger.AddError("Test Line 3");
+            logger.AddDebug("Test Line 4");
+
+            logger.IndentMinus();
+            logger.AddNormal("Test Line 1");
+            logger.AddWarning("Test Line 2");
+            logger.AddError("Test Line 3");
+            logger.AddDebug("Test Line 4");
+
+            logger.ClearIndent();
+            logger.ClearTitle();
+
+            logger.AddNormal("Test Line 1");
+            logger.AddWarning("Test Line 2");
+            logger.AddError("Test Line 3");
+            logger.AddDebug("Test Line 4");
         }
 
         /// <summary>
-        ///A test for InitializeRTFString
-        ///</summary>
-        [TestMethod()]
-        [DeploymentItem("Core.dll")]
-        public void InitializeRTFStringTest()
+        /// A simulator used to create and return the Regular Log String list which the LoggerSimulator will add into the Logger class.
+        /// </summary>
+        /// <param name="isDebugEnable">If the isDebugEnable is false, will not return the Debug log string.</param>
+        /// <returns>the Regular Log String list which the LoggerSimulator will add into the Logger class.</returns>
+        public List<String> LogRegularStringSimulator(Boolean isDebugEnable)
         {
-            PrivateObject param0 = null; // TODO: Initialize to an appropriate value
-            Logger_Accessor target = new Logger_Accessor(param0); // TODO: Initialize to an appropriate value
-            target.InitializeRTFString();
-            Assert.Inconclusive("A method that does not return a value cannot be verified.");
-        }
+            List<String> _logString = new List<String>();
 
-        /// <summary>
-        ///A test for MergeLogger
-        ///</summary>
-        [TestMethod()]
-        public void MergeLoggerTest()
-        {
-            string logFilePath = string.Empty; // TODO: Initialize to an appropriate value
-            LoggerOutput outputSetting = new LoggerOutput(); // TODO: Initialize to an appropriate value
-            bool isDebugEnabled = false; // TODO: Initialize to an appropriate value
-            Logger target = new Logger(logFilePath, outputSetting, isDebugEnabled); // TODO: Initialize to an appropriate value
-            Logger source = null; // TODO: Initialize to an appropriate value
-            target.MergeLogger(source);
-            Assert.Inconclusive("A method that does not return a value cannot be verified.");
-        }
+            if (isDebugEnable)
+            {
+                _logString.Add("[11:11:11.1111] Debug: Logger::Logger() Start Initialize Logger Class");
+                _logString.Add("[11:11:11.1111] Debug: Logger::InitializeRTFString() Start Initialize the Format of RTF String");
+                _logString.Add("[11:11:11.1111] Debug: Logger::InitializeRTFString() Initialize the Format of RTF String End");
+                _logString.Add("[11:11:11.1111] Debug: Logger::Logger() Initialize Logger Class End");
+                _logString.Add("[11:11:11.1111] Debug: Logger::OutputThread() Close the output Thread.");
+            }
 
-        /// <summary>
-        ///A test for OutputCacheLogs
-        ///</summary>
-        [TestMethod()]
-        [DeploymentItem("Core.dll")]
-        public void OutputCacheLogsTest()
-        {
-            PrivateObject param0 = null; // TODO: Initialize to an appropriate value
-            Logger_Accessor target = new Logger_Accessor(param0); // TODO: Initialize to an appropriate value
-            object state = null; // TODO: Initialize to an appropriate value
-            target.OutputCacheLogs(state);
-            Assert.Inconclusive("A method that does not return a value cannot be verified.");
-        }
+            _logString.Add("[11:11:11.1111] Test Line 1");
+            _logString.Add("[11:11:11.1111] Warning: Test Line 2");;
+            _logString.Add("[11:11:11.1111] Error: Test Line 3");
+            if (isDebugEnable)
+                _logString.Add("[11:11:11.1111] Debug: Test Line 4");
 
-        /// <summary>
-        ///A test for OutputSettingChange
-        ///</summary>
-        [TestMethod()]
-        public void OutputSettingChangeTest()
-        {
-            string logFilePath = string.Empty; // TODO: Initialize to an appropriate value
-            LoggerOutput outputSetting = new LoggerOutput(); // TODO: Initialize to an appropriate value
-            bool isDebugEnabled = false; // TODO: Initialize to an appropriate value
-            Logger target = new Logger(logFilePath, outputSetting, isDebugEnabled); // TODO: Initialize to an appropriate value
-            LoggerOutput newOutputSetting = new LoggerOutput(); // TODO: Initialize to an appropriate value
-            target.OutputSettingChange(newOutputSetting);
-            Assert.Inconclusive("A method that does not return a value cannot be verified.");
-        }
+            _logString.Add("[11:11:11.1111] Title 1 Test Line 1");
+            _logString.Add("[11:11:11.1111] Warning: Title 1 Test Line 2"); ;
+            _logString.Add("[11:11:11.1111] Error: Title 1 Test Line 3");
+            if (isDebugEnable)
+                _logString.Add("[11:11:11.1111] Debug: Title 1 Test Line 4");
 
-        /// <summary>
-        ///A test for OutputThread
-        ///</summary>
-        [TestMethod()]
-        [DeploymentItem("Core.dll")]
-        public void OutputThreadTest()
-        {
-            PrivateObject param0 = null; // TODO: Initialize to an appropriate value
-            Logger_Accessor target = new Logger_Accessor(param0); // TODO: Initialize to an appropriate value
-            target.OutputThread();
-            Assert.Inconclusive("A method that does not return a value cannot be verified.");
-        }
+            _logString.Add("[11:11:11.1111] Title 1::Title 2 Test Line 1");
+            _logString.Add("[11:11:11.1111] Warning: Title 1::Title 2 Test Line 2"); ;
+            _logString.Add("[11:11:11.1111] Error: Title 1::Title 2 Test Line 3");
+            if (isDebugEnable)
+                _logString.Add("[11:11:11.1111] Debug: Title 1::Title 2 Test Line 4");
 
-        /// <summary>
-        ///A test for TitleEnd
-        ///</summary>
-        [TestMethod()]
-        public void TitleEndTest()
-        {
-            string logFilePath = string.Empty; // TODO: Initialize to an appropriate value
-            LoggerOutput outputSetting = new LoggerOutput(); // TODO: Initialize to an appropriate value
-            bool isDebugEnabled = false; // TODO: Initialize to an appropriate value
-            Logger target = new Logger(logFilePath, outputSetting, isDebugEnabled); // TODO: Initialize to an appropriate value
-            target.TitleEnd();
-            Assert.Inconclusive("A method that does not return a value cannot be verified.");
-        }
+            _logString.Add("[11:11:11.1111] Title 1 Test Line 1");
+            _logString.Add("[11:11:11.1111] Warning: Title 1 Test Line 2"); ;
+            _logString.Add("[11:11:11.1111] Error: Title 1 Test Line 3");
+            if (isDebugEnable)
+                _logString.Add("[11:11:11.1111] Debug: Title 1 Test Line 4");
 
-        /// <summary>
-        ///A test for TitleStart
-        ///</summary>
-        [TestMethod()]
-        public void TitleStartTest()
-        {
-            string logFilePath = string.Empty; // TODO: Initialize to an appropriate value
-            LoggerOutput outputSetting = new LoggerOutput(); // TODO: Initialize to an appropriate value
-            bool isDebugEnabled = false; // TODO: Initialize to an appropriate value
-            Logger target = new Logger(logFilePath, outputSetting, isDebugEnabled); // TODO: Initialize to an appropriate value
-            string title = string.Empty; // TODO: Initialize to an appropriate value
-            target.TitleStart(title);
-            Assert.Inconclusive("A method that does not return a value cannot be verified.");
-        }
+            _logString.Add("\t[11:11:11.1111] Title 1 Test Line 1");
+            _logString.Add("\t[11:11:11.1111] Warning: Title 1 Test Line 2"); ;
+            _logString.Add("\t[11:11:11.1111] Error: Title 1 Test Line 3");
+            if (isDebugEnable)
+                _logString.Add("\t[11:11:11.1111] Debug: Title 1 Test Line 4");
 
-        /// <summary>
-        ///A test for WriteRTFCacheLogs
-        ///</summary>
-        [TestMethod()]
-        [DeploymentItem("Core.dll")]
-        public void WriteRTFCacheLogsTest()
-        {
-            PrivateObject param0 = null; // TODO: Initialize to an appropriate value
-            Logger_Accessor target = new Logger_Accessor(param0); // TODO: Initialize to an appropriate value
-            target.WriteRTFCacheLogs();
-            Assert.Inconclusive("A method that does not return a value cannot be verified.");
-        }
+            _logString.Add("\t\t[11:11:11.1111] Title 1 Test Line 1");
+            _logString.Add("\t\t[11:11:11.1111] Warning: Title 1 Test Line 2"); ;
+            _logString.Add("\t\t[11:11:11.1111] Error: Title 1 Test Line 3");
+            if (isDebugEnable)
+                _logString.Add("\t\t[11:11:11.1111] Debug: Title 1 Test Line 4");
 
-        /// <summary>
-        ///A test for WriteRegularCacheLogs
-        ///</summary>
-        [TestMethod()]
-        [DeploymentItem("Core.dll")]
-        public void WriteRegularCacheLogsTest()
-        {
-            PrivateObject param0 = null; // TODO: Initialize to an appropriate value
-            Logger_Accessor target = new Logger_Accessor(param0); // TODO: Initialize to an appropriate value
-            target.WriteRegularCacheLogs();
-            Assert.Inconclusive("A method that does not return a value cannot be verified.");
-        }
+            _logString.Add("\t[11:11:11.1111] Title 1 Test Line 1");
+            _logString.Add("\t[11:11:11.1111] Warning: Title 1 Test Line 2"); ;
+            _logString.Add("\t[11:11:11.1111] Error: Title 1 Test Line 3");
+            if (isDebugEnable)
+                _logString.Add("\t[11:11:11.1111] Debug: Title 1 Test Line 4");
 
-        /// <summary>
-        ///A test for IsDebugEnabled
-        ///</summary>
-        [TestMethod()]
-        public void IsDebugEnabledTest()
-        {
-            string logFilePath = string.Empty; // TODO: Initialize to an appropriate value
-            LoggerOutput outputSetting = new LoggerOutput(); // TODO: Initialize to an appropriate value
-            bool isDebugEnabled = false; // TODO: Initialize to an appropriate value
-            Logger target = new Logger(logFilePath, outputSetting, isDebugEnabled); // TODO: Initialize to an appropriate value
-            bool expected = false; // TODO: Initialize to an appropriate value
-            bool actual;
-            target.IsDebugEnabled = expected;
-            actual = target.IsDebugEnabled;
-            Assert.AreEqual(expected, actual);
-            Assert.Inconclusive("Verify the correctness of this test method.");
-        }
+            _logString.Add("[11:11:11.1111] Test Line 1");
+            _logString.Add("[11:11:11.1111] Warning: Test Line 2");;
+            _logString.Add("[11:11:11.1111] Error: Test Line 3");
+            if (isDebugEnable)
+                _logString.Add("[11:11:11.1111] Debug: Test Line 4");
 
-        /// <summary>
-        ///A test for LogDebugMessageColor
-        ///</summary>
-        [TestMethod()]
-        public void LogDebugMessageColorTest()
-        {
-            string logFilePath = string.Empty; // TODO: Initialize to an appropriate value
-            LoggerOutput outputSetting = new LoggerOutput(); // TODO: Initialize to an appropriate value
-            bool isDebugEnabled = false; // TODO: Initialize to an appropriate value
-            Logger target = new Logger(logFilePath, outputSetting, isDebugEnabled); // TODO: Initialize to an appropriate value
-            Color expected = new Color(); // TODO: Initialize to an appropriate value
-            Color actual;
-            target.LogDebugMessageColor = expected;
-            actual = target.LogDebugMessageColor;
-            Assert.AreEqual(expected, actual);
-            Assert.Inconclusive("Verify the correctness of this test method.");
+            return _logString;
         }
-
-        /// <summary>
-        ///A test for LogErrorMessageColor
-        ///</summary>
-        [TestMethod()]
-        public void LogErrorMessageColorTest()
-        {
-            string logFilePath = string.Empty; // TODO: Initialize to an appropriate value
-            LoggerOutput outputSetting = new LoggerOutput(); // TODO: Initialize to an appropriate value
-            bool isDebugEnabled = false; // TODO: Initialize to an appropriate value
-            Logger target = new Logger(logFilePath, outputSetting, isDebugEnabled); // TODO: Initialize to an appropriate value
-            Color expected = new Color(); // TODO: Initialize to an appropriate value
-            Color actual;
-            target.LogErrorMessageColor = expected;
-            actual = target.LogErrorMessageColor;
-            Assert.AreEqual(expected, actual);
-            Assert.Inconclusive("Verify the correctness of this test method.");
-        }
-
-        /// <summary>
-        ///A test for LogFilePath
-        ///</summary>
-        [TestMethod()]
-        public void LogFilePathTest()
-        {
-            string logFilePath = string.Empty; // TODO: Initialize to an appropriate value
-            LoggerOutput outputSetting = new LoggerOutput(); // TODO: Initialize to an appropriate value
-            bool isDebugEnabled = false; // TODO: Initialize to an appropriate value
-            Logger target = new Logger(logFilePath, outputSetting, isDebugEnabled); // TODO: Initialize to an appropriate value
-            string expected = string.Empty; // TODO: Initialize to an appropriate value
-            string actual;
-            target.LogFilePath = expected;
-            actual = target.LogFilePath;
-            Assert.AreEqual(expected, actual);
-            Assert.Inconclusive("Verify the correctness of this test method.");
-        }
-
-        /// <summary>
-        ///A test for LogMessageFont
-        ///</summary>
-        [TestMethod()]
-        public void LogMessageFontTest()
-        {
-            string logFilePath = string.Empty; // TODO: Initialize to an appropriate value
-            LoggerOutput outputSetting = new LoggerOutput(); // TODO: Initialize to an appropriate value
-            bool isDebugEnabled = false; // TODO: Initialize to an appropriate value
-            Logger target = new Logger(logFilePath, outputSetting, isDebugEnabled); // TODO: Initialize to an appropriate value
-            Font expected = null; // TODO: Initialize to an appropriate value
-            Font actual;
-            target.LogMessageFont = expected;
-            actual = target.LogMessageFont;
-            Assert.AreEqual(expected, actual);
-            Assert.Inconclusive("Verify the correctness of this test method.");
-        }
-
-        /// <summary>
-        ///A test for LogNormalMessageColor
-        ///</summary>
-        [TestMethod()]
-        public void LogNormalMessageColorTest()
-        {
-            string logFilePath = string.Empty; // TODO: Initialize to an appropriate value
-            LoggerOutput outputSetting = new LoggerOutput(); // TODO: Initialize to an appropriate value
-            bool isDebugEnabled = false; // TODO: Initialize to an appropriate value
-            Logger target = new Logger(logFilePath, outputSetting, isDebugEnabled); // TODO: Initialize to an appropriate value
-            Color expected = new Color(); // TODO: Initialize to an appropriate value
-            Color actual;
-            target.LogNormalMessageColor = expected;
-            actual = target.LogNormalMessageColor;
-            Assert.AreEqual(expected, actual);
-            Assert.Inconclusive("Verify the correctness of this test method.");
-        }
-
-        /// <summary>
-        ///A test for LogTimeColor
-        ///</summary>
-        [TestMethod()]
-        public void LogTimeColorTest()
-        {
-            string logFilePath = string.Empty; // TODO: Initialize to an appropriate value
-            LoggerOutput outputSetting = new LoggerOutput(); // TODO: Initialize to an appropriate value
-            bool isDebugEnabled = false; // TODO: Initialize to an appropriate value
-            Logger target = new Logger(logFilePath, outputSetting, isDebugEnabled); // TODO: Initialize to an appropriate value
-            Color expected = new Color(); // TODO: Initialize to an appropriate value
-            Color actual;
-            target.LogTimeColor = expected;
-            actual = target.LogTimeColor;
-            Assert.AreEqual(expected, actual);
-            Assert.Inconclusive("Verify the correctness of this test method.");
-        }
-
-        /// <summary>
-        ///A test for LogTimeFont
-        ///</summary>
-        [TestMethod()]
-        public void LogTimeFontTest()
-        {
-            string logFilePath = string.Empty; // TODO: Initialize to an appropriate value
-            LoggerOutput outputSetting = new LoggerOutput(); // TODO: Initialize to an appropriate value
-            bool isDebugEnabled = false; // TODO: Initialize to an appropriate value
-            Logger target = new Logger(logFilePath, outputSetting, isDebugEnabled); // TODO: Initialize to an appropriate value
-            Font expected = null; // TODO: Initialize to an appropriate value
-            Font actual;
-            target.LogTimeFont = expected;
-            actual = target.LogTimeFont;
-            Assert.AreEqual(expected, actual);
-            Assert.Inconclusive("Verify the correctness of this test method.");
-        }
-
-        /// <summary>
-        ///A test for LogTitleColor
-        ///</summary>
-        [TestMethod()]
-        public void LogTitleColorTest()
-        {
-            string logFilePath = string.Empty; // TODO: Initialize to an appropriate value
-            LoggerOutput outputSetting = new LoggerOutput(); // TODO: Initialize to an appropriate value
-            bool isDebugEnabled = false; // TODO: Initialize to an appropriate value
-            Logger target = new Logger(logFilePath, outputSetting, isDebugEnabled); // TODO: Initialize to an appropriate value
-            Color expected = new Color(); // TODO: Initialize to an appropriate value
-            Color actual;
-            target.LogTitleColor = expected;
-            actual = target.LogTitleColor;
-            Assert.AreEqual(expected, actual);
-            Assert.Inconclusive("Verify the correctness of this test method.");
-        }
-
-        /// <summary>
-        ///A test for LogTitleFont
-        ///</summary>
-        [TestMethod()]
-        public void LogTitleFontTest()
-        {
-            string logFilePath = string.Empty; // TODO: Initialize to an appropriate value
-            LoggerOutput outputSetting = new LoggerOutput(); // TODO: Initialize to an appropriate value
-            bool isDebugEnabled = false; // TODO: Initialize to an appropriate value
-            Logger target = new Logger(logFilePath, outputSetting, isDebugEnabled); // TODO: Initialize to an appropriate value
-            Font expected = null; // TODO: Initialize to an appropriate value
-            Font actual;
-            target.LogTitleFont = expected;
-            actual = target.LogTitleFont;
-            Assert.AreEqual(expected, actual);
-            Assert.Inconclusive("Verify the correctness of this test method.");
-        }
-
-        /// <summary>
-        ///A test for LogWarningMessageColor
-        ///</summary>
-        [TestMethod()]
-        public void LogWarningMessageColorTest()
-        {
-            string logFilePath = string.Empty; // TODO: Initialize to an appropriate value
-            LoggerOutput outputSetting = new LoggerOutput(); // TODO: Initialize to an appropriate value
-            bool isDebugEnabled = false; // TODO: Initialize to an appropriate value
-            Logger target = new Logger(logFilePath, outputSetting, isDebugEnabled); // TODO: Initialize to an appropriate value
-            Color expected = new Color(); // TODO: Initialize to an appropriate value
-            Color actual;
-            target.LogWarningMessageColor = expected;
-            actual = target.LogWarningMessageColor;
-            Assert.AreEqual(expected, actual);
-            Assert.Inconclusive("Verify the correctness of this test method.");
-        }
-
-        /// <summary>
-        ///A test for OutputSetting
-        ///</summary>
-        [TestMethod()]
-        public void OutputSettingTest()
-        {
-            string logFilePath = string.Empty; // TODO: Initialize to an appropriate value
-            LoggerOutput outputSetting = new LoggerOutput(); // TODO: Initialize to an appropriate value
-            bool isDebugEnabled = false; // TODO: Initialize to an appropriate value
-            Logger target = new Logger(logFilePath, outputSetting, isDebugEnabled); // TODO: Initialize to an appropriate value
-            LoggerOutput actual;
-            actual = target.OutputSetting;
-            Assert.Inconclusive("Verify the correctness of this test method.");
-        }
+        #endregion
     }
 }

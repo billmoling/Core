@@ -637,7 +637,7 @@ namespace CoreTest.LogTest
         }
         #endregion
 
-        #region Property Test
+        #region Properties Test
         /// <summary>
         /// A test for Indent Property
         /// </summary>
